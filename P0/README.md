@@ -1,11 +1,11 @@
-# P0
-> Install XV6 & Tour XV^ source cdoe
+# P0 - Init
+> Install XV6 & Tour XV6 source cdoe with GDB
 
 ### 과제 명세
 - **P0-1** : Print Your Name!
-  - Print your ID and Name in the xv6 boot message
+  - XV6 boot message에 학번과 이름을 출력
   - ex)
-  - <pre>
+    <pre>
     xv6...
     cpu1: starting 1
     ...
@@ -15,13 +15,13 @@
     $
     </pre>
 - **P0-2** : Get the Process size with GDB
-  - Get the Process size with GDB
-    Breakpoint at proc.c/fork()
-    display np->sz
+  - GDB를 이용해 프로세스의 크기를 출력
+    - Breakpoint at proc.c/fork()
+    - display np->sz
 
 ### Solution
 - **P0-1** : Print Your Name!<br>
-  - Look for sh entry point(user/init.c)
+  - shell로 진입하는 부분을 찾아 printf추가 (user/init.c)
   - [Append your code](https://github.com/kangarrro/SSU_OS/blob/main/P0/xv6_ssu_init/user/init.c#L22)(user/init.c)
 - **P0-2** : Get the Process size with GDB
   - In xv6 : make qemu-nox-gdb
