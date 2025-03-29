@@ -292,5 +292,5 @@ tar:
 
 
 
-
+# proc.c / setnice(), getnice(), ps() : for P1
 CFLAGS += -DPRIORITY
