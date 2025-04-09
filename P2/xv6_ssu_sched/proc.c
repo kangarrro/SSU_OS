@@ -33,8 +33,7 @@ int cpuid()
 
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
-struct cpu *
-mycpu(void)
+struct cpu *mycpu(void)
 {
     int apicid, i;
 
@@ -53,8 +52,7 @@ mycpu(void)
 
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
-struct proc *
-myproc(void)
+struct proc *myproc(void)
 {
     struct cpu *c;
     struct proc *p;
@@ -70,8 +68,7 @@ myproc(void)
 //  If found, change state to EMBRYO and initialize
 //  state required to run in the kernel.
 //  Otherwise return 0.
-static struct proc *
-allocproc(void)
+static struct proc *allocproc(void)
 {
     struct proc *p;
     char *sp;
@@ -88,11 +85,12 @@ allocproc(void)
 found:
     p->state = EMBRYO;
     p->pid = nextpid++;
-    p->priority = 20;
+    p->priority = 20; // ???
 
     release(&ptable.lock);
 
     // Allocate kernel stack.
+    // nextpid-- 는 왜 다시안하지
     if ((p->kstack = kalloc()) == 0) {
         p->state = UNUSED;
         return 0;
@@ -197,7 +195,7 @@ int fork(void)
     np->sz = curproc->sz;
     np->parent = curproc;
     *np->tf = *curproc->tf;
-    np->priority = curproc->priority;
+    np->priority = curproc->priority; // 부모프로세스 우선순위 복사 ??
 
     // Clear %eax so that fork returns 0 in the child.
     np->tf->eax = 0;
