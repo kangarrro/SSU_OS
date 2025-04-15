@@ -3,28 +3,31 @@
 #include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "mlfq.h"     // P2. Implement MLFQ scheduler
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
 
 // MLFQ
 // Don't modify
-enum queuelevel {
-    HIGH,
-    MID,
-    LOW,
-};
+// enum queuelevel {
+//     HIGH,
+//     MID,
+//     LOW,
+// };
 // Don't modify
-enum tSlice { // time slice size (3 level)
-    tHigh = 10,
-    tMid = 20,
-    tLow = 30,
-};
+// enum tSlice { // time slice size (3 level)
+//     tHigh = 10,
+//     tMid = 20,
+//     tLow = 30,
+// };
 
 struct {
     struct spinlock lock;
     struct proc proc[NPROC];
 } ptable;
+
+extern struct list_head mlfq_queue[MAX_PRIORITY_LEVEL];
 
 static struct proc *initproc;
 
@@ -33,9 +36,11 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+static void yield_fork(void);
 
 void pinit(void)
 {
+    queue_init();
     initlock(&ptable.lock, "ptable");
 }
 
@@ -99,6 +104,10 @@ static struct proc *allocproc(void)
 found:
     p->state = EMBRYO;
     p->pid = nextpid++;
+    p->priority = HIGH;
+    p->proc_tick = 0;
+    p->sched_tick = ticks;
+    p->in_queue = 0;
 
     release(&ptable.lock);
 
@@ -159,6 +168,10 @@ void userinit(void)
     acquire(&ptable.lock);
 
     p->state = RUNNABLE;
+    p->priority = HIGH;
+    p->proc_tick = 0;
+    p->sched_tick = ticks;
+    queue_push(p->priority, p);
 
     release(&ptable.lock);
 }
@@ -225,10 +238,14 @@ int fork(void)
     pid = np->pid;
 
     acquire(&ptable.lock);
-
+    np->priority = HIGH;
+    np->proc_tick = 0;
+    np->sched_tick = ticks;
     np->state = RUNNABLE;
+    queue_push(np->priority, np);
 
     release(&ptable.lock);
+    yield_fork();
 
     return pid;
 }
@@ -317,6 +334,7 @@ int wait(void)
         }
 
         // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+        // cprintf("[DEBUG] sleep() chan: %p from pid %d (%s)\n", curproc, myproc()->pid, myproc()->name);
         sleep(curproc, &ptable.lock); // DOC: wait-sleep
     }
 }
@@ -336,35 +354,33 @@ void scheduler(void)
     c->proc = 0;
 
     for (;;) {
-        // Enable interrupts on this processor.
-        sti();
+        sti();  // 인터럽트 허용
 
-        // Loop over process table looking for process to run.
         acquire(&ptable.lock);
 
-        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-            if (p->state != RUNNABLE)
+        for (int level = 0; level < MAX_PRIORITY_LEVEL; level++) {
+            if (queue_empty(&mlfq_queue[level]))
                 continue;
-
-            /* ******************** */
-            /* * WRITE YOUR CODE    */
-            /* ******************** */
-
-            // Switch to chosen process.  It is the process's job
-            // to release ptable.lock and then reacquire it
-            // before jumping back to us.
+        
+            // 큐에서 프로세스 제거(pop)
+            p = queue_pop(level);
+            
+            if (p->state != RUNNABLE) {
+                queue_push(level, p);  // RUNNABLE이 아니면 재삽입
+                continue;
+            }
+            
+            // RUNNABLE 상태라면, 선택하여 실행
             c->proc = p;
             switchuvm(p);
             p->state = RUNNING;
-
+            p->sched_tick = ticks;
             swtch(&(c->scheduler), p->context);
             switchkvm();
 
-            // Process is done running for now.
-            // It should have changed its p->state before coming back.
             c->proc = 0;
+            break;
         }
-
         release(&ptable.lock);
     }
 }
@@ -397,11 +413,33 @@ void sched(void)
 // Give up the CPU for one scheduling round.
 void yield(void)
 {
-    acquire(&ptable.lock); // DOC: yieldlock
-    myproc()->state = RUNNABLE;
+    struct proc *p = myproc();
+    acquire(&ptable.lock);
+    p->state = RUNNABLE;
+    if (p->priority < MAX_PRIORITY_LEVEL-1)
+        p->priority++;
+    p->proc_tick = 0;
+
+    if (!p->in_queue) queue_push(p->priority, p);
+
     sched();
     release(&ptable.lock);
 }
+
+static void yield_fork(void)
+{
+    struct proc *p = myproc();
+    acquire(&ptable.lock);
+
+    p->state = RUNNABLE;
+    // 부모 yield의 경우, 타이머 preemption 조건 없이 run queue에 등록되어야 함.
+    // 그리고 run queue에 이미 제거된 상태이므로, head에 재삽입하여 바로 재실행.
+    queue_push_head(p->priority, p);
+
+    sched();
+    release(&ptable.lock);
+}
+
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
@@ -445,9 +483,12 @@ void sleep(void *chan, struct spinlock *lk)
         acquire(&ptable.lock); // DOC: sleeplock1
         release(lk);
     }
+    
     // Go to sleep.
     p->chan = chan;
     p->state = SLEEPING;
+    if (p->in_queue)
+        queue_remove(p);
 
     sched();
 
@@ -467,15 +508,22 @@ void sleep(void *chan, struct spinlock *lk)
 static void wakeup1(void *chan)
 {
     struct proc *p;
+    // cprintf("[DEBUG] wakeup1() chan: %p\n", chan);
 
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-        if (p->state == SLEEPING && p->chan == chan)
+        if (p->state == SLEEPING && p->chan == chan) {
             p->state = RUNNABLE;
+            p->priority = HIGH;
+            if (!p->in_queue)
+                queue_push(p->priority, p);
+            // cprintf("[WAKEUP1] checking pid %d name %s state %d chan %p\n", p->pid, p->name, p->state, p->chan);
+        }
 }
 
 // Wake up all processes sleeping on chan.
 void wakeup(void *chan)
 {
+    // cprintf("[DEBUG] wakeup() chan: %p\n", chan);
     acquire(&ptable.lock);
     wakeup1(chan);
     release(&ptable.lock);
@@ -493,8 +541,11 @@ int kill(int pid)
         if (p->pid == pid) {
             p->killed = 1;
             // Wake process from sleep if necessary.
-            if (p->state == SLEEPING)
+            if (p->state == SLEEPING) {
                 p->state = RUNNABLE;
+                if (!p->in_queue)
+                    queue_push(p->priority, p);
+            }
             release(&ptable.lock);
             return 0;
         }
@@ -541,7 +592,7 @@ int getlevel(void)
     struct proc *p;
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
         if (p->state == RUNNING)
-            return p->level;
+            return p->priority;
     }
 
     return -1;

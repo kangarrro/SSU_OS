@@ -3,6 +3,7 @@
 #include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "mlfq.h"     // P2. Implement MLFQ scheduler
 #include "proc.h"
 #include "x86.h"
 #include "traps.h"
@@ -51,9 +52,11 @@ void trap(struct trapframe *tf)
             wakeup(&ticks);
             release(&tickslock);
         }
-        /* ******************** */
-        /* * WRITE YOUR CODE    */
-        /* ******************** */
+        
+        if (myproc() && myproc()->state == RUNNING) {
+            myproc()->proc_tick++;
+        }
+
         lapiceoi();
         break;
     case T_IRQ0 + IRQ_IDE:
@@ -103,8 +106,15 @@ void trap(struct trapframe *tf)
     // Force process to give up CPU on clock tick.
     // If interrupts were on while locks held, would need to check nlock.
     if (myproc() && myproc()->state == RUNNING &&
-        tf->trapno == T_IRQ0 + IRQ_TIMER)
+        tf->trapno == T_IRQ0 + IRQ_TIMER &&
+        myproc()->proc_tick >= TIMESLICE(myproc()->priority)) {
         yield();
+    }
+            // if (myproc()->priority < MAX_PRIORITY_LEVEL-1)
+                // myproc()->priority++;
+            // myproc()->proc_tick = 0;
+
+
 
     // Check if the process has been killed since we yielded
     if (myproc() && myproc()->killed && (tf->cs & 3) == DPL_USER)

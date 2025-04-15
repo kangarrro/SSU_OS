@@ -34,26 +34,45 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+
+// 
+struct list_head {
+    struct list_head *next;
+    struct list_head *prev;
+};
+
+enum priority_level {
+    HIGH = 0,
+    MID = 1,
+    LOW = 2
+};
+
 // Per-process state
 struct proc {
-    uint sz;                    // Size of process memory (bytes)
-    pde_t *pgdir;               // Page table
-    char *kstack;               // Bottom of kernel stack for this process
-    enum procstate state;       // Process state
-    int pid;                    // Process ID
-    struct proc *parent;        // Parent process
-    struct trapframe *tf;       // Trap frame for current syscall
-    struct context *context;    // swtch() here to run process
-    void *chan;                 // If non-zero, sleeping on chan
-    int killed;                 // If non-zero, have been killed
-    struct file *ofile[NOFILE]; // Open files
-    struct inode *cwd;          // Current directory
-    char name[16];              // Process name (debugging)
-    int priority;               // Process priority
-
+    uint sz;                     // Size of process memory (bytes)
+    pde_t *pgdir;                // Page table
+    char *kstack;                // Bottom of kernel stack for this process
+    enum procstate state;        // Process state
+    int pid;                     // Process ID
+    struct proc *parent;         // Parent process
+    struct trapframe *tf;        // Trap frame for current syscall
+    struct context *context;     // swtch() here to run process
+    void *chan;                  // If non-zero, sleeping on chan
+    int killed;                  // If non-zero, have been killed
+    struct file *ofile[NOFILE];  // Open files
+    struct inode *cwd;           // Current directory
+    char name[16];               // Process name (debugging)
+    
     // MLFQ
-    int level;    // Process queue level;
-    int leftTime; // remaining timeslice
+    int in_queue;
+    struct list_head queue_link;
+    
+    enum priority_level priority; // Process priority
+    uint proc_tick;
+    uint sched_tick;
+
+    // int level;    // Process queue level;
+    // int leftTime; // remaining timeslice
 };
 
 // Process memory is laid out contiguously, low addresses first:

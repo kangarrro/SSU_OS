@@ -197,8 +197,7 @@ struct cmd *execcmd(void)
     return (struct cmd *)cmd;
 }
 
-struct cmd *redircmd(struct cmd *subcmd, char *file, char *efile, int mode,
-                     int fd)
+struct cmd *redircmd(struct cmd *subcmd, char *file, char *efile, int mode, int fd)
 {
     struct redircmd *cmd;
 

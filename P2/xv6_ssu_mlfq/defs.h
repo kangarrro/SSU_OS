@@ -87,6 +87,14 @@ void log_write(struct buf *);
 void begin_op();
 void end_op();
 
+// mlfq.c
+// P2. Implement MLFQ scheduler
+void queue_init(void);
+void queue_push(int level, struct proc *p);
+struct proc* queue_pop(int level);
+void queue_remove(struct proc *p);
+void queue_push_head(int level, struct proc *p);
+
 // mp.c
 extern int ismp;
 void mpinit(void);
@@ -114,7 +122,7 @@ void pinit(void);
 void procdump(void);
 void scheduler(void) __attribute__((noreturn));
 void sched(void);
-void setproc(struct proc *);
+// void setproc(struct proc *); // ?
 void sleep(void *, struct spinlock *);
 void userinit(void);
 int wait(void);
@@ -189,3 +197,11 @@ void clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x) / sizeof((x)[0]))
+
+#ifndef offsetof
+#define offsetof(type, member)    \
+    ((uint) &((type *)0)->member)
+#endif
+
+#define container_of(ptr, type, member)  \
+    ((type *)((char *)(ptr) - (offsetof(type, member))))
