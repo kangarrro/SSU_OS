@@ -1,5 +1,5 @@
 # SSU_OS
-> 2025학년 1학기 숭실대학교 운영체제(이길호) 과제
+> 2025학년 1학기 숭실대학교 운영체제(이길호 교수) 과제
 
 
 ## 과제 설명 : 총 5번의 과제가 있으며, 주어진 템플릿(xv6)에서 구현한다.
@@ -21,7 +21,11 @@
             , 이후 user.h, syscall.h, syscall.c, sysproc.c, def.h 등을 수정해 system call로 설정
       - code : [xv6_ssu_syscall/proc.c/ps()](https://github.com/kangarrro/SSU_OS/blob/main/P1/xv6_ssu_syscall/proc.c#L569)
 
-3. P2 : [Scheduler](https://github.com/kangarrro/SSU_OS/tree/main/P2)
+3. P2 : [MLFQ Scheduler](https://github.com/kangarrro/SSU_OS/tree/main/P2)
+    - 과제 요약: 누적시간을 기반으로 한 3레벨 MLFQ스케줄러를 구현한다.
+    - 누적시간이란, 프로세스가 해당 큐 레벨에서 실행된 총 시간을 의미한다.
+    - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P2/README.md)
+    - [과제 구현 코드](https://github.com/kangarrro/SSU_OS/blob/main/P2/solution.md)
 
 4. P3 : [Slab?](https://github.com/kangarrro/SSU_OS/tree/main/P3)
 

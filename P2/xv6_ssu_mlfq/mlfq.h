@@ -3,9 +3,9 @@
 #define MAX_PRIORITY_LEVEL 3
 
 #define TIMESLICE(priority)       \
-    ((priority) == HIGH ? 100 :    \
-    (priority) == MID ? 200 :      \
-    (priority) == LOW ? 300 : 300)
+    ((priority) == HIGH ? 10 :    \
+    (priority) == MID ? 20 :      \
+    (priority) == LOW ? 30 : 30)
 
 
 
