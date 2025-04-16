@@ -28,3 +28,12 @@
   - In GDB : target remote [XV6_PORT]
   - b proc.c/fork
   - d np->sz
+
+
+
+
+
+
+      - sol : user/init.c에서 printf("ID(학번) ...") // in printf.c
+    - P0-2 : gdb를 이용해 proc.c/fork()의 np->sz 디버깅
+      - sol : gdb를 이용해 proc.c/fork()의 np->sz 출력

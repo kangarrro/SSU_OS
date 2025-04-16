@@ -24,3 +24,16 @@
 
 
 ### Code
+
+
+
+
+    - 1. setnice(pid, nice)/getnice(pid) system call 추가 : process의 priority(nice)를 설정/확인 하는 시스템콜 추가
+      - sol : ptable을 순회하며 주어진 pid에 해당하는 process를 찾아, nice설정 혹은 반환하는 함수 구현
+            , 이후 user.h, syscall.h, syscall.c, sysproc.c, def.h 등을 수정해 system call로 설정
+      - code : [xv6_ssu_syscall/proc.c/setnice(), getnice()](https://github.com/kangarrro/SSU_OS/blob/df4a3b0b7a1f2b879cc681ad2ba6551a1c15bfed/P1/xv6_ssu_syscall/proc.c#L531)
+
+    - 2. ps system call추가 : process table에서 모든 process정보를 출력하는 시스템콜 추가
+      - sol : ptable을 순회하며, process의 정보를 출력(cprintf)
+            , 이후 user.h, syscall.h, syscall.c, sysproc.c, def.h 등을 수정해 system call로 설정
+      - code : [xv6_ssu_syscall/proc.c/ps()](https://github.com/kangarrro/SSU_OS/blob/main/P1/xv6_ssu_syscall/proc.c#L569)
