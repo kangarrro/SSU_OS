@@ -9,7 +9,7 @@
 #include "spinlock.h"
 
 
-// Not Using... move to ./mlfq.h
+// Not Using... move to "./mlfq.h"
 
 // MLFQ
 // Don't modify
@@ -369,7 +369,6 @@ void scheduler(void)
                 queue_push(level, p);  // RUNNABLE이 아니면 재삽입
                 continue;
             }
-            // cprintf("[SCHED] name: %s, pid: %d, priority: %d\n", p->name, p->pid, p->priority);
             
             // 실행
             c->proc = p;
@@ -414,17 +413,11 @@ void sched(void)
 void yield(void)
 {
     struct proc *p = myproc();
-    // cprintf("[YIELD] name: %s, pid: %d, priority: %d\n", p->name, p->pid, p->priority);
     acquire(&ptable.lock);
     p->state = RUNNABLE;
     p->proc_tick = 0;
     
     if (p->priority < MAX_PRIORITY_LEVEL-1) p->priority++;
-    // if (p->proc_tick >= TIMESLICE(p->priority)) {
-    //     if (p->priority < MAX_PRIORITY_LEVEL - 1)
-    //         p->priority++;
-    //     p->proc_tick = 0;  // 이 경우만 초기화
-    // }
     if (!p->in_queue) queue_push(p->priority, p);
 
     sched();
@@ -592,13 +585,25 @@ void procdump(void)
 
 // MLFQ debugging function provided
 // Just debugging for Process's level in MLFQ test case
+// int getlevel(void)
+// {
+//     struct proc *p;
+//     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+//         if (p->state == RUNNING)
+//             return p->priority;
+//     }
+
+//     return -1;
+// }
 int getlevel(void)
 {
-    struct proc *p;
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->state == RUNNING)
-            return p->priority;
-    }
+    struct proc *p = myproc();
+    // for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    //     if (p->state == RUNNING)
+    //         return p->priority;
+    // }
+    if (p && p->state == RUNNING)
+        return p->priority;
 
     return -1;
 }
