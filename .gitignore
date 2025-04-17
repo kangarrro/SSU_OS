@@ -1,4 +1,3 @@
-**/.DS_Store
-.clang-format
-
-**/memo.md
+ **/*.tar.gz
+ **/.DS_Store
+ **/.clang-format
