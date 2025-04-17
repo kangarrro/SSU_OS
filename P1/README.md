@@ -21,5 +21,5 @@
 ## [Solution](https://github.com/kangarrro/SSU_OS/tree/main/P0/solution.md)
   - **setnice() / getnice()** 
     - 우선순위를 설정하고, 반환하는 시스템 콜 구현
-  - **P0-2** : Get the Process size with GDB
-    - gdb로 접속 후 디버깅
+  - **ps()**
+    - 모든 프로세스의 정보를 출력하는 시스템 콜 구현
