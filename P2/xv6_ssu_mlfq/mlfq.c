@@ -10,14 +10,7 @@
 #include "spinlock.h"
 
 
-// proc.c/ptable
-extern struct {
-    struct spinlock lock;
-    struct proc proc[NPROC];
-} ptable;
-
-struct list_head mlfq_queue[MAX_PRIORITY_LEVEL];
-
+extern struct list_head mlfq_queue[MAX_PRIORITY_LEVEL];
 
 // MLFQ QUEUE Functions
 void queue_init(void)
@@ -28,7 +21,7 @@ void queue_init(void)
     }
 }
 
-// Insert process p at the end of queue
+// 큐의 끝에 프로세스 p 삽입
 void queue_push(int level, struct proc *p)
 {
     struct list_head *q = &mlfq_queue[level];
@@ -54,7 +47,7 @@ void queue_push_head(int level, struct proc *p)
     p->in_queue = 1;
 }
 
-
+// 큐의 가장앞에 있는 프로세스 반환 및 제거
 struct proc *queue_pop(int level)
 {
     struct list_head *q = &mlfq_queue[level];
@@ -69,6 +62,7 @@ struct proc *queue_pop(int level)
     return p;
 }
 
+// 큐에서 프로세스 p제거(프로세스가 큐 어디에 위치하든 상관없이)
 void queue_remove(struct proc *p)
 {
     struct list_head *entry = &p->queue_link;
@@ -82,7 +76,3 @@ void queue_remove(struct proc *p)
     entry->prev = entry;
     p->in_queue = 0;
 }
-
-// MLFQ Priority Functiosn
-// void set_priority(int priority) {}
-// void get_priority() {}

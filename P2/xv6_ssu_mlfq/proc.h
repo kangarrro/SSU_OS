@@ -35,16 +35,10 @@ struct context {
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 
-// 
+// for linked-list
 struct list_head {
     struct list_head *next;
     struct list_head *prev;
-};
-
-enum priority_level {
-    HIGH = 0,
-    MID = 1,
-    LOW = 2
 };
 
 // Per-process state
@@ -63,16 +57,12 @@ struct proc {
     struct inode *cwd;           // Current directory
     char name[16];               // Process name (debugging)
     
-    // MLFQ
-    int in_queue;
-    struct list_head queue_link;
+    // P2. Implement MLFQ Scheduler
+    int in_queue;                // in queue?
+    struct list_head queue_link; // for linked-list
     
-    enum priority_level priority; // Process priority
-    uint proc_tick;
-    uint sched_tick;
-
-    // int level;    // Process queue level;
-    // int leftTime; // remaining timeslice
+    int priority;                 // Process priority
+    uint proc_tick;               // process's using time
 };
 
 // Process memory is laid out contiguously, low addresses first:

@@ -110,11 +110,6 @@ void trap(struct trapframe *tf)
         myproc()->proc_tick >= TIMESLICE(myproc()->priority)) {
         yield();
     }
-            // if (myproc()->priority < MAX_PRIORITY_LEVEL-1)
-                // myproc()->priority++;
-            // myproc()->proc_tick = 0;
-
-
 
     // Check if the process has been killed since we yielded
     if (myproc() && myproc()->killed && (tf->cs & 3) == DPL_USER)

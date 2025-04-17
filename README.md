@@ -24,16 +24,17 @@
 - 과제 요약: 누적시간을 기반으로 한 3레벨 MLFQ스케줄러를 구현한다.
     - 누적시간이란, 프로세스가 해당 큐 레벨에서 실행된 총 시간을 의미한다.
     - 우선순위는 3가지의 상태, HIGH(0), MID(1), LOW(2)를 가지며 각각의 우선순위는 10, 20, 30 tick의 time_slice를 가진다.
+    - 모든 프로세스의 우선순위는 누적시간이 해당 큐의 time_slice를 초과했을때만, 강등되며, 별도의 priority boost는 없다.
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P2/README.md): 자세한 과제 요구사항을 확인할 수 있습니다.
-- [과제 구현 코드](https://github.com/kangarrro/SSU_OS/blob/main/P2/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
+- [상세 구현 내용](https://github.com/kangarrro/SSU_OS/blob/main/P2/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
 
 ### 4. P3 : [Slab Allocator](https://github.com/kangarrro/SSU_OS/tree/main/P3)
 - 과제 요약:
   - Slab allocator
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P3/README.md): 자세한 과제 요구사항을 확인할 수 있습니다.
-- [과제 구현 코드](https://github.com/kangarrro/SSU_OS/blob/main/P3/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
+- [상세 구현 내용](https://github.com/kangarrro/SSU_OS/blob/main/P3/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
 ### 5. P4 : [Copy-On-Write](https://github.com/kangarrro/SSU_OS/tree/main/P4)
 - 과제 요약:
   - Copy-On-Write
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P4/README.md)
-- [과제 구현 코드](https://github.com/kangarrro/SSU_OS/blob/main/P4/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
+- [상세 구현 내용](https://github.com/kangarrro/SSU_OS/blob/main/P4/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.

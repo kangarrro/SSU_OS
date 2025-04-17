@@ -8,12 +8,15 @@
 #include "proc.h"
 #include "spinlock.h"
 
+
+// Not Using... move to ./mlfq.h
+
 // MLFQ
 // Don't modify
 // enum queuelevel {
-//     HIGH,
-//     MID,
-//     LOW,
+//     HIGH = 0,
+//     MID = 1,
+//     LOW = 2
 // };
 // Don't modify
 // enum tSlice { // time slice size (3 level)
@@ -27,7 +30,7 @@ struct {
     struct proc proc[NPROC];
 } ptable;
 
-extern struct list_head mlfq_queue[MAX_PRIORITY_LEVEL];
+struct list_head mlfq_queue[MAX_PRIORITY_LEVEL];
 
 static struct proc *initproc;
 
@@ -40,7 +43,7 @@ static void yield_fork(void);
 
 void pinit(void)
 {
-    queue_init();
+    queue_init(); // queue init 추가
     initlock(&ptable.lock, "ptable");
 }
 
@@ -104,9 +107,9 @@ static struct proc *allocproc(void)
 found:
     p->state = EMBRYO;
     p->pid = nextpid++;
+    // P2
     p->priority = HIGH;
     p->proc_tick = 0;
-    p->sched_tick = ticks;
     p->in_queue = 0;
 
     release(&ptable.lock);
@@ -168,9 +171,9 @@ void userinit(void)
     acquire(&ptable.lock);
 
     p->state = RUNNABLE;
+    // P2
     p->priority = HIGH;
     p->proc_tick = 0;
-    p->sched_tick = ticks;
     queue_push(p->priority, p);
 
     release(&ptable.lock);
@@ -221,10 +224,6 @@ int fork(void)
     np->parent = curproc;
     *np->tf = *curproc->tf;
 
-    /* ******************** */
-    /* * WRITE YOUR CODE    */
-    /* ******************** */
-
     // Clear %eax so that fork returns 0 in the child.
     np->tf->eax = 0;
 
@@ -238,13 +237,14 @@ int fork(void)
     pid = np->pid;
 
     acquire(&ptable.lock);
+    np->state = RUNNABLE;
+    // P2
     np->priority = HIGH;
     np->proc_tick = 0;
-    np->sched_tick = ticks;
-    np->state = RUNNABLE;
     queue_push(np->priority, np);
 
     release(&ptable.lock);
+    // P2 : fork 시에 scheduler 호출
     yield_fork();
 
     return pid;
@@ -369,12 +369,12 @@ void scheduler(void)
                 queue_push(level, p);  // RUNNABLE이 아니면 재삽입
                 continue;
             }
+            // cprintf("[SCHED] name: %s, pid: %d, priority: %d\n", p->name, p->pid, p->priority);
             
-            // RUNNABLE 상태라면, 선택하여 실행
+            // 실행
             c->proc = p;
             switchuvm(p);
             p->state = RUNNING;
-            p->sched_tick = ticks;
             swtch(&(c->scheduler), p->context);
             switchkvm();
 
@@ -414,12 +414,17 @@ void sched(void)
 void yield(void)
 {
     struct proc *p = myproc();
+    // cprintf("[YIELD] name: %s, pid: %d, priority: %d\n", p->name, p->pid, p->priority);
     acquire(&ptable.lock);
     p->state = RUNNABLE;
-    if (p->priority < MAX_PRIORITY_LEVEL-1)
-        p->priority++;
     p->proc_tick = 0;
-
+    
+    if (p->priority < MAX_PRIORITY_LEVEL-1) p->priority++;
+    // if (p->proc_tick >= TIMESLICE(p->priority)) {
+    //     if (p->priority < MAX_PRIORITY_LEVEL - 1)
+    //         p->priority++;
+    //     p->proc_tick = 0;  // 이 경우만 초기화
+    // }
     if (!p->in_queue) queue_push(p->priority, p);
 
     sched();
