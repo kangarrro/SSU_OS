@@ -18,7 +18,7 @@
      - 모든 프로세스들의 정보(name, pid, state, priority, runtime)를 출력한다.
      - 교수자가 제공한 user/ps.c가 동작할 수 있도록 한다.
 
-## [Solution](https://github.com/kangarrro/SSU_OS/tree/main/P0/solution.md)
+## [Solution](https://github.com/kangarrro/SSU_OS/tree/main/P1/solution.md)
   - **setnice() / getnice()** 
     - 우선순위를 설정하고, 반환하는 시스템 콜 구현
   - **ps()**
