@@ -20,7 +20,7 @@
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/tree/main/P1/README.md): 자세한 과제 요구사항을 확인할 수 있습니다.
 - [상세 구현 내용](https://github.com/kangarrro/SSU_OS/tree/main/P1/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
 
-### 3. P2 : [MLFQ Scheduler](https://github.com/kangarrro/SSU_OS/tree/main/P2)
+### 3. P2 : [MLFQ Scheduler (by Cumulative Accounting)](https://github.com/kangarrro/SSU_OS/tree/main/P2)
 - 과제 요약: 누적시간을 기반으로 한 3레벨 MLFQ스케줄러를 구현한다.
     - 누적시간이란, 프로세스가 해당 큐 레벨에서 실행된 총 시간을 의미한다.
     - 우선순위는 3가지의 상태, HIGH(0), MID(1), LOW(2)를 가지며 각각의 우선순위는 10, 20, 30 tick의 time_slice를 가진다.
