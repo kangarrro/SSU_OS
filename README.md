@@ -38,3 +38,6 @@
   - Copy-On-Write
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P4/README.md)
 - [상세 구현 내용](https://github.com/kangarrro/SSU_OS/blob/main/P4/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
+
+### [X86 Registers](https://github.com/kangarrro/SSU_OS/blob/main/x86-register.md)
+ - 컴퓨터구조를 ARM으로 수강해, xv6(x86)에서 사용하는 레지스터들을 정리해두었습니다.

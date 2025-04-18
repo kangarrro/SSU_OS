@@ -45,7 +45,7 @@
 |:-:|:-:|
 |CR0|시스템 동작 전반(Protection Enable, Paging 등)|
 |CR2|페이지 폴트 주소 저장|
-|CR3|현재 페이지의 물리 주소|
+|CR3|현재 페이지 디렉터리의 물리 주소|
 |CR4|고급 기능 제어(PAE, SSE, TSD 등)|
 
 ### 디버깅 레지스터 (Debig Registers)
