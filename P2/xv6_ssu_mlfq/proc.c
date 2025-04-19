@@ -174,7 +174,7 @@ void userinit(void)
     // P2
     p->priority = HIGH;
     p->proc_tick = 0;
-    queue_push(p->priority, p);
+    if(!p->in_queue) queue_push(p->priority, p);
 
     release(&ptable.lock);
 }
@@ -241,7 +241,7 @@ int fork(void)
     // P2
     np->priority = HIGH;
     np->proc_tick = 0;
-    queue_push(np->priority, np);
+    if(!np->in_queue) queue_push(np->priority, np);
 
     release(&ptable.lock);
     // P2 : fork 시에 scheduler 호출
@@ -354,35 +354,77 @@ void scheduler(void)
     c->proc = 0;
 
     for (;;) {
-        sti();  // 인터럽트 허용
-
+        sti();
         acquire(&ptable.lock);
 
         for (int level = 0; level < MAX_PRIORITY_LEVEL; level++) {
-            if (queue_empty(&mlfq_queue[level]))
+            int qsize = queue_size(level);
+            if (qsize == 0)
                 continue;
-        
-            // 큐에서 프로세스 제거(pop)
-            p = queue_pop(level);
-            
-            if (p->state != RUNNABLE) {
-                queue_push(level, p);  // RUNNABLE이 아니면 재삽입
-                continue;
-            }
-            
-            // 실행
-            c->proc = p;
-            switchuvm(p);
-            p->state = RUNNING;
-            swtch(&(c->scheduler), p->context);
-            switchkvm();
 
-            c->proc = 0;
+            for (int i = 0; i < qsize; i++) {
+                p = queue_pop(level);
+
+                if (!p)
+                    continue;
+
+                if (p->state != RUNNABLE) {
+                    queue_push(level, p);
+                    continue;
+                }
+
+                // 실행
+                c->proc = p;
+                switchuvm(p);
+                p->state = RUNNING;
+                swtch(&(c->scheduler), p->context);
+                switchkvm();
+
+                c->proc = 0;
+                break;
+            }
             break;
         }
+
         release(&ptable.lock);
     }
 }
+// void scheduler(void)
+// {
+//     struct proc *p;
+//     struct cpu *c = mycpu();
+//     c->proc = 0;
+
+//     for (;;) {
+//         sti();  // 인터럽트 허용
+
+//         acquire(&ptable.lock);
+
+//         for (int level = 0; level < MAX_PRIORITY_LEVEL; level++) {
+//             if (queue_empty(&mlfq_queue[level]))
+//                 continue;
+        
+//             // 큐에서 프로세스 제거(pop)
+//             p = queue_pop(level);
+            
+//             if (p->state != RUNNABLE) {
+//                 if(!p->in_queue) queue_push(level, p);  // RUNNABLE이 아니면 재삽입
+//                 break;
+//             }
+            
+//             // 실행
+//             c->proc = p;
+//             switchuvm(p);
+//             p->state = RUNNING;
+//             swtch(&(c->scheduler), p->context);
+//             switchkvm();
+
+//             c->proc = 0;
+//             break;
+//         }
+//         release(&ptable.lock);
+//     }
+// }
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores

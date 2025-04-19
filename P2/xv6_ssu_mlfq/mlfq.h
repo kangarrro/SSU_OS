@@ -24,4 +24,3 @@ enum tSlice { // time slice size (3 level)
 
 // 큐의 가장 앞 노드를 반환
 #define queue_head(q) ((q)->next)
-    

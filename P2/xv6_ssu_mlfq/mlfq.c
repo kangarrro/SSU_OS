@@ -11,6 +11,7 @@
 
 
 extern struct list_head mlfq_queue[MAX_PRIORITY_LEVEL];
+int queue_count[MAX_PRIORITY_LEVEL];
 
 // MLFQ QUEUE Functions
 void queue_init(void)
@@ -32,6 +33,7 @@ void queue_push(int level, struct proc *p)
     q->prev->next = entry;
     q->prev = entry;
     p->in_queue = 1;
+    queue_count[level]++;
 }
 
 // 현재 큐의 head 다음 위치(head->next)에 삽입
@@ -45,6 +47,7 @@ void queue_push_head(int level, struct proc *p)
     q->next->prev = entry;
     q->next = entry;
     p->in_queue = 1;
+    queue_count[level]++;
 }
 
 // 큐의 가장앞에 있는 프로세스 반환 및 제거
@@ -59,6 +62,7 @@ struct proc *queue_pop(int level)
     first->next->prev = q;
     struct proc *p = container_of(first, struct proc, queue_link);
     p->in_queue = 0;
+    queue_count[level]--;
     return p;
 }
 
@@ -75,4 +79,10 @@ void queue_remove(struct proc *p)
     entry->next = entry;
     entry->prev = entry;
     p->in_queue = 0;
+    queue_count[p->priority]--;
+}
+
+int queue_size(int level)
+{
+    return queue_count[level];
 }

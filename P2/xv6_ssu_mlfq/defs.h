@@ -94,6 +94,7 @@ void queue_push(int level, struct proc *p);
 struct proc* queue_pop(int level);
 void queue_remove(struct proc *p);
 void queue_push_head(int level, struct proc *p);
+int queue_size(int level);
 
 // mp.c
 extern int ismp;
