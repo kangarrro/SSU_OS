@@ -347,43 +347,52 @@ int wait(void)
 //   - swtch to start running that process
 //   - eventually that process transfers control
 //       via swtch back to the scheduler.
-void scheduler(void)
+void
+scheduler(void)
 {
     struct proc *p;
     struct cpu *c = mycpu();
     c->proc = 0;
 
     for (;;) {
+        // 인터럽트 허용
         sti();
+
         acquire(&ptable.lock);
 
+        int scheduled = 0;
+        // 최고(HIGH)~최저(LOW) 우선순위 레벨 순으로 검사
         for (int level = 0; level < MAX_PRIORITY_LEVEL; level++) {
             int qsize = queue_size(level);
             if (qsize == 0)
                 continue;
 
+            // 현재 레벨에 들어있는 모든 엔트리 순회
             for (int i = 0; i < qsize; i++) {
                 p = queue_pop(level);
-
                 if (!p)
                     continue;
 
                 if (p->state != RUNNABLE) {
+                    // RUNNABLE 아니면 다시 뒤로 넣고 패스
                     queue_push(level, p);
                     continue;
                 }
 
-                // 실행
+                // 실제로 스케줄링!
+                scheduled = 1;
                 c->proc = p;
                 switchuvm(p);
                 p->state = RUNNING;
-                swtch(&(c->scheduler), p->context);
+                swtch(&c->scheduler, p->context);
                 switchkvm();
-
                 c->proc = 0;
-                break;
+
+                break;  // inner loop 탈출
             }
-            break;
+            if (scheduled)
+                break;      // outer loop 탈출
+            // 아직 스케줄링 못했으면 다음 레벨로
         }
 
         release(&ptable.lock);
@@ -470,12 +479,9 @@ static void yield_fork(void)
 {
     struct proc *p = myproc();
     acquire(&ptable.lock);
-
     p->state = RUNNABLE;
-    // 부모 yield의 경우, 타이머 preemption 조건 없이 run queue에 등록되어야 함.
-    // 그리고 run queue에 이미 제거된 상태이므로, head에 재삽입하여 바로 재실행.
+    p->proc_tick = 0;           // ← 여기를 추가!
     queue_push_head(p->priority, p);
-
     sched();
     release(&ptable.lock);
 }
@@ -548,16 +554,15 @@ void sleep(void *chan, struct spinlock *lk)
 static void wakeup1(void *chan)
 {
     struct proc *p;
-    // cprintf("[DEBUG] wakeup1() chan: %p\n", chan);
-
-    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
         if (p->state == SLEEPING && p->chan == chan) {
             p->state = RUNNABLE;
             p->priority = HIGH;
+            p->proc_tick = 0;       // ← 여기를 추가!
             if (!p->in_queue)
                 queue_push(p->priority, p);
-            // cprintf("[WAKEUP1] checking pid %d name %s state %d chan %p\n", p->pid, p->name, p->state, p->chan);
         }
+    }
 }
 
 // Wake up all processes sleeping on chan.
