@@ -44,8 +44,7 @@
 volatile uint *lapic; // Initialized in mp.c
 
 // PAGEBREAK!
-static void
-lapicw(int index, int value)
+static void lapicw(int index, int value)
 {
     lapic[index] = value;
     lapic[ID]; // wait for write to finish, by reading
@@ -113,8 +112,7 @@ void lapiceoi(void)
 // Spin for a given number of microseconds.
 // On real hardware would want to tune this dynamically.
 void microdelay(int us)
-{
-}
+{}
 
 #define CMOS_PORT 0x70
 #define CMOS_RETURN 0x71
@@ -166,8 +164,7 @@ void lapicstartap(uchar apicid, uint addr)
 #define MONTH 0x08
 #define YEAR 0x09
 
-static uint
-cmos_read(uint reg)
+static uint cmos_read(uint reg)
 {
     outb(CMOS_PORT, reg);
     microdelay(200);
@@ -175,8 +172,7 @@ cmos_read(uint reg)
     return inb(CMOS_RETURN);
 }
 
-static void
-fill_rtcdate(struct rtcdate *r)
+static void fill_rtcdate(struct rtcdate *r)
 {
     r->second = cmos_read(SECS);
     r->minute = cmos_read(MINS);

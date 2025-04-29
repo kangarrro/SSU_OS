@@ -40,12 +40,34 @@ struct segdesc {
 };
 
 // Normal segment
-#define SEG(type, base, lim, dpl) (struct segdesc){((lim) >> 12) & 0xffff, (uint)(base) & 0xffff, \
-                                                   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,  \
-                                                   (uint)(lim) >> 28, 0, 0, 1, 1, (uint)(base) >> 24}
-#define SEG16(type, base, lim, dpl) (struct segdesc){(lim) & 0xffff, (uint)(base) & 0xffff,        \
-                                                     ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1, \
-                                                     (uint)(lim) >> 16, 0, 0, 1, 0, (uint)(base) >> 24}
+#define SEG(type, base, lim, dpl)                                              \
+    (struct segdesc){((lim) >> 12) & 0xffff,                                   \
+                     (uint)(base) & 0xffff,                                    \
+                     ((uint)(base) >> 16) & 0xff,                              \
+                     type,                                                     \
+                     1,                                                        \
+                     dpl,                                                      \
+                     1,                                                        \
+                     (uint)(lim) >> 28,                                        \
+                     0,                                                        \
+                     0,                                                        \
+                     1,                                                        \
+                     1,                                                        \
+                     (uint)(base) >> 24}
+#define SEG16(type, base, lim, dpl)                                            \
+    (struct segdesc){(lim) & 0xffff,                                           \
+                     (uint)(base) & 0xffff,                                    \
+                     ((uint)(base) >> 16) & 0xff,                              \
+                     type,                                                     \
+                     1,                                                        \
+                     dpl,                                                      \
+                     1,                                                        \
+                     (uint)(lim) >> 16,                                        \
+                     0,                                                        \
+                     0,                                                        \
+                     1,                                                        \
+                     0,                                                        \
+                     (uint)(base) >> 24}
 #endif
 
 #define DPL_USER 0x3 // User DPL
@@ -163,17 +185,17 @@ struct gatedesc {
 // - dpl: Descriptor Privilege Level -
 //        the privilege level required for software to invoke
 //        this interrupt/trap gate explicitly using an int instruction.
-#define SETGATE(gate, istrap, sel, off, d)            \
-    {                                                 \
-        (gate).off_15_0 = (uint)(off) & 0xffff;       \
-        (gate).cs = (sel);                            \
-        (gate).args = 0;                              \
-        (gate).rsv1 = 0;                              \
-        (gate).type = (istrap) ? STS_TG32 : STS_IG32; \
-        (gate).s = 0;                                 \
-        (gate).dpl = (d);                             \
-        (gate).p = 1;                                 \
-        (gate).off_31_16 = (uint)(off) >> 16;         \
+#define SETGATE(gate, istrap, sel, off, d)                                     \
+    {                                                                          \
+        (gate).off_15_0 = (uint)(off) & 0xffff;                                \
+        (gate).cs = (sel);                                                     \
+        (gate).args = 0;                                                       \
+        (gate).rsv1 = 0;                                                       \
+        (gate).type = (istrap) ? STS_TG32 : STS_IG32;                          \
+        (gate).s = 0;                                                          \
+        (gate).dpl = (d);                                                      \
+        (gate).p = 1;                                                          \
+        (gate).off_31_16 = (uint)(off) >> 16;                                  \
     }
 
 #endif

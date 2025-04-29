@@ -12,11 +12,11 @@
 #include "param.h"
 
 #ifndef static_assert
-#define static_assert(a, b) \
-    do {                    \
-        switch (0)          \
-        case 0:             \
-        case (a):;          \
+#define static_assert(a, b)                                                    \
+    do {                                                                       \
+        switch (0)                                                             \
+        case 0:                                                                \
+        case (a):;                                                             \
     } while (0)
 #endif
 
@@ -46,8 +46,7 @@ uint ialloc(ushort type);
 void iappend(uint inum, void *p, int n);
 
 // convert to intel byte order
-ushort
-xshort(ushort x)
+ushort xshort(ushort x)
 {
     ushort y;
     uchar *a = (uchar *)&y;
@@ -103,7 +102,8 @@ int main(int argc, char *argv[])
     sb.inodestart = xint(2 + nlog);
     sb.bmapstart = xint(2 + nlog + ninodeblocks);
 
-    printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
+    printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap "
+           "blocks %u) blocks %d total %d\n",
            nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
     freeblock = nmeta; // the first free block that we can allocate

@@ -221,8 +221,8 @@ void writetest1(void)
             exit();
         }
         if (((int *)buf)[0] != n) {
-            printf(stdout, "read content of block %d is %d\n",
-                   n, ((int *)buf)[0]);
+            printf(stdout, "read content of block %d is %d\n", n,
+                   ((int *)buf)[0]);
             exit();
         }
         n++;
@@ -813,8 +813,7 @@ void concreate(void)
             printf(1, "fork failed\n");
             exit();
         }
-        if (((i % 3) == 0 && pid == 0) ||
-            ((i % 3) == 1 && pid != 0)) {
+        if (((i % 3) == 0 && pid == 0) || ((i % 3) == 1 && pid != 0)) {
             close(open(file, 0));
             close(open(file, 0));
             close(open(file, 0));
@@ -1194,7 +1193,9 @@ void fourteen(void)
     }
     fd = open("123456789012345/123456789012345/123456789012345", O_CREATE);
     if (fd < 0) {
-        printf(1, "create 123456789012345/123456789012345/123456789012345 failed\n");
+        printf(
+            1,
+            "create 123456789012345/123456789012345/123456789012345 failed\n");
         exit();
     }
     close(fd);
@@ -1425,7 +1426,9 @@ void sbrktest(void)
     amt = (BIG) - (uint)a;
     p = sbrk(amt);
     if (p != a) {
-        printf(stdout, "sbrk test failed to grow big address space; enough phys mem?\n");
+        printf(
+            stdout,
+            "sbrk test failed to grow big address space; enough phys mem?\n");
         exit();
     }
     lastaddr = (char *)(BIG - 1);
@@ -1440,7 +1443,8 @@ void sbrktest(void)
     }
     c = sbrk(0);
     if (c != a - 4096) {
-        printf(stdout, "sbrk deallocation produced wrong address, a %x c %x\n", a, c);
+        printf(stdout, "sbrk deallocation produced wrong address, a %x c %x\n",
+               a, c);
         exit();
     }
 
@@ -1524,7 +1528,10 @@ void validateint(int *p)
     asm("mov %%esp, %%ebx\n\t"
         "mov %3, %%esp\n\t"
         "int %2\n\t"
-        "mov %%ebx, %%esp" : "=a"(res) : "a"(SYS_sleep), "n"(T_SYSCALL), "c"(p) : "ebx");
+        "mov %%ebx, %%esp"
+        : "=a"(res)
+        : "a"(SYS_sleep), "n"(T_SYSCALL), "c"(p)
+        : "ebx");
 }
 
 void validatetest(void)
@@ -1585,7 +1592,10 @@ void bigargtest(void)
         static char *args[MAXARG];
         int i;
         for (i = 0; i < MAXARG - 1; i++)
-            args[i] = "bigargs test: failed\n                                                                                                                                                                                                       ";
+            args[i] = "bigargs test: failed\n                                  "
+                      "                                                        "
+                      "                                                        "
+                      "                                                     ";
         args[MAXARG - 1] = 0;
         printf(stdout, "bigarg test\n");
         exec("echo", args);
@@ -1701,8 +1711,7 @@ void argptest()
 }
 
 unsigned long randstate = 1;
-unsigned int
-rand()
+unsigned int rand()
 {
     randstate = randstate * 1664525 + 1013904223;
     return randstate;

@@ -75,8 +75,7 @@ void kfree(char *v)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
-char *
-kalloc(void)
+char *kalloc(void)
 {
     struct run *r;
 

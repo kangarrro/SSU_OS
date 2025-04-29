@@ -12,7 +12,7 @@
 #define TESTSLABID 7
 #define MAXTEST 200
 #define MAXSLABTEST 25600
-
+#define TEST_PG_NUM 5
 /* *********** DO NOT MODIFY THIS SOURCE FILE ************* */
 
 /*
@@ -34,13 +34,13 @@ void slabtest()
     int *tmp;
 
     /* NOTE:
-     * The current version of xv6 contains an error on aligning memory segments of the kernel,
-     * especially due to the literals of this source code.
-     * More specifically, the '.stab' section should be aligned
-     * to locate the VMA (virtual memory address) of an multiple of 4 bytes.
-     * You can check the VMA of .stab by executing 'objdump -h kernel' in your xv6 source dir.
-     * If the VMA is not aligned to the multiple of 4B, then adjust (add/del chars)
-     * the literal string in the cprintf function
+     * The current version of xv6 contains an error on aligning memory segments
+     * of the kernel, especially due to the literals of this source code. More
+     * specifically, the '.stab' section should be aligned to locate the VMA
+     * (virtual memory address) of an multiple of 4 bytes. You can check the VMA
+     * of .stab by executing 'objdump -h kernel' in your xv6 source dir. If the
+     * VMA is not aligned to the multiple of 4B, then adjust (add/del chars) the
+     * literal string in the cprintf function
      */
     cprintf("==== SLAB TEST ====\n");
 
@@ -56,8 +56,8 @@ void slabtest()
     t[0][0] = (int *)kmalloc(TESTSIZE);
     *(t[0][0]) = counter;
     counter++;
-
-    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
+    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n"
+                                                                  : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
     /* TEST2: Single slab alloc: the size not equal to a power of 2. */
@@ -67,7 +67,8 @@ void slabtest()
     *(t[0][0]) = counter;
     counter++;
 
-    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
+    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n"
+                                                                  : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
     /* TEST3: Multiple slabs alloc */
@@ -87,7 +88,8 @@ void slabtest()
     for (int i = 0; i < NSLAB; i++) {
         slabsize = 1 << (i + 4);
         for (int j = 0; j < slabsize / sizeof(int); j++) {
-            // cprintf("%d, %d, %d, %d\n", i, j, *(t[i][0]+j), start);		//YOU MAY USE THIS
+            // cprintf("%d, %d, %d, %d\n", i, j, *(t[i][0]+j), start);
+            // //YOU MAY USE THIS
             if (*(t[i][0] + j) != start) {
                 pass = 0;
                 break;
@@ -95,11 +97,17 @@ void slabtest()
             start++;
         }
     }
-    cprintf(pass ? "OK\n" : "WRONG\n");
     for (int i = 0; i < NSLAB; i++) {
         slabsize = 1 << (i + 4);
         kmfree((char *)t[i][0], slabsize);
     }
+    for (int i = 0; i < NSLAB; i++) {
+        if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            pass = 0;
+            break;
+        }
+    }
+    cprintf(pass ? "OK\n" : "WRONG\n");
 
     /* TEST4: Multiple slabs alloc2 */
     cprintf("==== TEST4 =====\n");
@@ -129,13 +137,19 @@ void slabtest()
             }
         }
     }
-    cprintf(pass ? "OK\n" : "WRONG\n");
-
     for (int i = 0; i < NSLAB; i++) {
         slabsize = 1 << (i + 4);
         for (int j = 0; j < MAXTEST; j++)
             kmfree((char *)t[i][j], slabsize);
     }
+    // DO NOT de-alloc first page. Allocate one page for slab cache.
+    for (int i = 0; i < NSLAB; i++) {
+        if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            pass = 0;
+            break;
+        }
+    }
+    cprintf(pass ? "OK\n" : "WRONG\n");
 
     /* TEST5: alloc more than the page limit (100 pages) */
     cprintf("==== TEST5 =====\n");
@@ -176,9 +190,17 @@ void slabtest()
             start++;
         }
     }
-    cprintf(pass ? "OK\n" : "WRONG\n");
+    // cprintf( pass ? "OK\n" : "WRONG\n");
     for (int j = 0; j < MAXTEST; j++)
         kmfree((char *)t[0][j], TESTSIZE);
+
+    for (int i = 0; i < NSLAB; i++) {
+        if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            pass = 0;
+            break;
+        }
+    }
+    cprintf(pass ? "OK\n" : "WRONG\n");
 
     /* TEST7: de-alloc empty slab pages */
     cprintf("==== TEST7 =====\n");
@@ -203,7 +225,8 @@ void slabtest()
         page_num_after = numpage_slab(i);
 
         // CHECK
-        if ((page_num_before == MAX_PAGES_PER_SLAB) && (page_num_after == MAX_PAGES_PER_SLAB / 2))
+        if ((page_num_before == MAX_PAGES_PER_SLAB) &&
+            (page_num_after == MAX_PAGES_PER_SLAB / 2))
             continue;
         else
             pass = 0;
@@ -217,6 +240,13 @@ void slabtest()
         }
     }
 
+    // DO NOT de-alloc first page. Allocate one page for slab cache.
+    for (int i = 0; i < NSLAB; i++) {
+        if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            pass = 0;
+            break;
+        }
+    }
     cprintf(pass ? "OK\n" : "WRONG\n");
 
     /* TEST8: re-alloc empty slab pages */
@@ -252,6 +282,14 @@ void slabtest()
 
     for (int j = 0; j < max_numslab; j++)
         kmfree((char *)t[0][j], TESTSIZE);
+
+    // DO NOT de-alloc first page. Allocate one page for slab cache.
+    for (int i = 0; i < NSLAB; i++) {
+        if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            pass = 0;
+            break;
+        }
+    }
     cprintf(pass ? "OK\n" : "WRONG\n");
 
     /* TEST9: free some slabs already freed */
@@ -276,11 +314,18 @@ void slabtest()
         if (numobjs != numobj_slab(i))
             pass = 0;
     }
-
-    for (int i = 0; i < NSLAB; i++)
+    for (int i = 0; i < NSLAB; i++) {
+        slabsize = 1 << (i + 4);
         for (int j = 0; j < 16; j++)
             kmfree((char *)t[i][j], slabsize);
-
+    }
+    // DO NOT de-alloc first page. Allocate one page for slab cache.
+    for (int i = 0; i < NSLAB; i++) {
+        if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            pass = 0;
+            break;
+        }
+    }
     cprintf(pass ? "OK\n" : "WRONG\n");
     cprintf("===== TEST END =====\n");
 }

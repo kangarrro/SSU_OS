@@ -6,8 +6,7 @@
 int kbdgetc(void)
 {
     static uint shift;
-    static uchar *charcode[4] = {
-        normalmap, shiftmap, ctlmap, ctlmap};
+    static uchar *charcode[4] = {normalmap, shiftmap, ctlmap, ctlmap};
     uint st, data, c;
 
     st = inb(KBSTATP);

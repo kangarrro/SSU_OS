@@ -4,8 +4,7 @@
 #include "user.h"
 #include "x86.h"
 
-char *
-strcpy(char *s, const char *t)
+char *strcpy(char *s, const char *t)
 {
     char *os;
 
@@ -31,15 +30,13 @@ uint strlen(const char *s)
     return n;
 }
 
-void *
-memset(void *dst, int c, uint n)
+void *memset(void *dst, int c, uint n)
 {
     stosb(dst, c, n);
     return dst;
 }
 
-char *
-strchr(const char *s, char c)
+char *strchr(const char *s, char c)
 {
     for (; *s; s++)
         if (*s == c)
@@ -47,8 +44,7 @@ strchr(const char *s, char c)
     return 0;
 }
 
-char *
-gets(char *buf, int max)
+char *gets(char *buf, int max)
 {
     int i, cc;
     char c;
@@ -88,8 +84,7 @@ int atoi(const char *s)
     return n;
 }
 
-void *
-memmove(void *vdst, const void *vsrc, int n)
+void *memmove(void *vdst, const void *vsrc, int n)
 {
     char *dst;
     const char *src;

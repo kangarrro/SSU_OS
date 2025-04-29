@@ -37,8 +37,8 @@ void slabdump()
     cprintf("size\tnum_pages\tused_objects\tfree_objects\n");
 
     for (s = stable.slab; s < &stable.slab[NSLAB]; s++) {
-        cprintf("%d\t%d\t\t%d\t\t%d\n",
-                s->size, s->num_pages, s->num_used_objects, s->num_free_objects);
+        cprintf("%d\t%d\t\t%d\t\t%d\n", s->size, s->num_pages,
+                s->num_used_objects, s->num_free_objects);
     }
 }
 

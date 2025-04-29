@@ -52,8 +52,7 @@ int cpuid()
 
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
-struct cpu *
-mycpu(void)
+struct cpu *mycpu(void)
 {
     int apicid, i;
 
@@ -72,8 +71,7 @@ mycpu(void)
 
 // Disable interrupts so that we are not rescheduled
 // while reading proc from the cpu structure
-struct proc *
-myproc(void)
+struct proc *myproc(void)
 {
     struct cpu *c;
     struct proc *p;
@@ -89,8 +87,7 @@ myproc(void)
 //  If found, change state to EMBRYO and initialize
 //  state required to run in the kernel.
 //  Otherwise return 0.
-static struct proc *
-allocproc(void)
+static struct proc *allocproc(void)
 {
     struct proc *p;
     char *sp;
@@ -462,8 +459,7 @@ void sleep(void *chan, struct spinlock *lk)
 // PAGEBREAK!
 //  Wake up all processes sleeping on chan.
 //  The ptable lock must be held.
-static void
-wakeup1(void *chan)
+static void wakeup1(void *chan)
 {
     struct proc *p;
 
@@ -509,12 +505,8 @@ int kill(int pid)
 void procdump(void)
 {
     static char *states[] = {
-        [UNUSED] "unused",
-        [EMBRYO] "embryo",
-        [SLEEPING] "sleep ",
-        [RUNNABLE] "runble",
-        [RUNNING] "run   ",
-        [ZOMBIE] "zombie"};
+        [UNUSED] "unused",   [EMBRYO] "embryo",  [SLEEPING] "sleep ",
+        [RUNNABLE] "runble", [RUNNING] "run   ", [ZOMBIE] "zombie"};
     int i;
     struct proc *p;
     char *state;
@@ -541,12 +533,8 @@ void procdump(void)
 void ps(void)
 {
     static char *states[] = {
-        [UNUSED] "unused",
-        [EMBRYO] "embryo",
-        [SLEEPING] "sleep ",
-        [RUNNABLE] "runble",
-        [RUNNING] "run   ",
-        [ZOMBIE] "zombie"};
+        [UNUSED] "unused",   [EMBRYO] "embryo",  [SLEEPING] "sleep ",
+        [RUNNABLE] "runble", [RUNNING] "run   ", [ZOMBIE] "zombie"};
     struct proc *p;
     char *state, *name;
 
