@@ -17,9 +17,9 @@ struct slab {
 
 // Page의 상태 (bitmap을 보고 확인함)
 typedef enum page_state {
-    PAGE_NOT_ALLOCATED = 0,
-    PAGE_AVAILABLE     = 1,
-    PAGE_FULL          = 2
+    PAGE_EMPTY     = 0,
+    PAGE_AVAILABLE = 1,
+    PAGE_FULL      = 2
 } page_state;
 
 void slabdump();

@@ -29,7 +29,7 @@ static page_state get_page_state(struct slab *s, int page_index)
 	}
 
 	if (count == 0)                 // 할당되지 않은 Page
-		return PAGE_NOT_ALLOCATED;
+		return PAGE_EMPTY;
 	else if (count == obj_per_page) // 꽉찬 Page
 		return PAGE_FULL;
 	else                            // 사용가능한 Page
@@ -63,6 +63,9 @@ void slabinit()
 }
 
 /*
+	error:
+		1. slab is FULL
+		2. 
 	1. size에 해당하는 slab cache 찾기
 	2. 새 페이지 할당 여부 결정
 		2-1: 빈 페이지 검색 후 할당
@@ -75,12 +78,14 @@ char *kmalloc(int size)
 	struct slab *s = NULL;
 	int slab_id;
 	int page_idx, obj_idx;
+
+	acquire(&stable.lock);
 	
     // 1. size -> slab cache 찾기
 	for (slab_id = NSLAB - 1; stable.slab[slab_id].size >= size; slab_id--);
 	s = &stable.slab[slab_id];
 
-	// 새 Page 할당 ; (PAGE_NOT_ALLOCATED OR PAGE_FULL)
+	// 새 Page 할당 ; (PAGE_EMPTY OR PAGE_FULL)
 	if (s->num_free_objects == 0) {
 		// 빈 페이지 검색
 		for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++)
@@ -98,16 +103,16 @@ char *kmalloc(int size)
 	// 빈 slab 검색
 	int base = page_idx * s->num_objects_per_page;
 	for (obj_idx = base; obj_idx < base + s->num_objects_per_page; obj_idx++)
-		if ((s->bitmap[obj_idx / 8] & (1 << obj_idx % 8)) == 0) break;
+		if ((s->bitmap[obj_idx / 8] & (1 << (obj_idx % 8))) == 0) break;
 	
 	// 비트맵 설정
-	int byte_index = obj_idx / 8;
-	int bit_offset = obj_idx % 8;
-	s->bitmap[byte_index] |= (1 << bit_offset);
+	s->bitmap[obj_idx / 8] |= (1 << obj_idx % 8);
 	
 	// slab 할당
 	s->num_free_objects += s->num_objects_per_page - 1;
 	s->num_used_objects += 1;
+
+	release(&stable.lock);
 	
 
 	// object 주소 계산	
@@ -123,7 +128,43 @@ char *kmalloc(int size)
 */
 void kmfree(char *addr, int size)
 {
-    /* fill in the blank */
+    // 1. size로 slab 찾기
+	// 2. addr이 있는지 확인
+	// 3. addr로 page_idx, bit_offset 계산 ???
+	//      -> page(12bit), offset(20bit)
+
+	struct slab *s = NULL;
+	char *page_addr = NULL;
+	int slab_id;
+	int page_idx, obj_idx;
+	
+	for (slab_id = NSLAB - 1; stable.slab[slab_id].size >= size; slab_id--);
+	s = &stable.slab[slab_id];
+	
+	
+	page_addr = (char *)((uint)addr & 0xFFF00000);
+	obj_idx = ((uint)addr & 0x000FFFFF) / s->size;
+	if (page_addr == NULL) return;
+
+
+	// s->page[]순회하며 page_idx 검색
+	for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++)
+		if (s->page[page_idx] == page_addr) break;
+
+	// 해제
+	s->bitmap[page_idx * s->num_objects_per_page / 8] &= ~(1 << obj_idx);
+
+	s->num_free_objects += 1;
+	s->num_used_objects -= 1;
+	
+	// page가 비었으면 페이지 해제
+	if (get_page_state(s, page_idx) == PAGE_EMPTY) {
+		kfree(page_addr);
+		s->num_pages -= 1;
+		s->num_free_objects -= s->num_objects_per_page;
+		s->page[page_idx] = NULL;
+	}
+
 }
 
 
