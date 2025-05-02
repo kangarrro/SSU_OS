@@ -32,7 +32,7 @@ int main(void)
     ideinit();                                  // disk
     startothers();                              // start other processors
     kinit2(P2V(4 * 1024 * 1024), P2V(PHYSTOP)); // must come after startothers()
-    slabinit();                                 // PROJ-SLAB
+    slabinit();                                 // P3. PROJ-SLAB
     userinit();                                 // first user process
     mpmain();                                   // finish this processor's setup
 }
