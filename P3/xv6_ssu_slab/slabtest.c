@@ -56,8 +56,7 @@ void slabtest()
     t[0][0] = (int *)kmalloc(TESTSIZE);
     *(t[0][0]) = counter;
     counter++;
-    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n"
-                                                                  : "WRONG\n");
+    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
     /* TEST2: Single slab alloc: the size not equal to a power of 2. */
@@ -67,8 +66,7 @@ void slabtest()
     *(t[0][0]) = counter;
     counter++;
 
-    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n"
-                                                                  : "WRONG\n");
+    cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
     /* TEST3: Multiple slabs alloc */
@@ -103,6 +101,8 @@ void slabtest()
     }
     for (int i = 0; i < NSLAB; i++) {
         if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
+            cprintf("n_page: %d\n", numpage_slab(i));
+            // cprintf("n_obj: %d\n", numobj_slab(i));
             pass = 0;
             break;
         }

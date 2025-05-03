@@ -13,7 +13,7 @@ struct {
 } stable;
 
 
-// bit단위 순회하며 1인 bit count
+// bitmap을 순회하며 Page의 상태를 반환하는 함수
 static page_state get_page_state(struct slab *s, int page_index)
 {
 	int byte_index, bit_index;
@@ -42,22 +42,25 @@ static page_state get_page_state(struct slab *s, int page_index)
 void slabinit()
 {
 	int base_size = 16;
+	int size;
 
 	acquire(&stable.lock);
 	// stable.slab[] 초기화
 	for (int i=0; i<NSLAB; i++) {
-		int size = base_size * (i+1);
+		size = base_size << i;
 		stable.slab[i].size = size;
 		stable.slab[i].num_pages = 0;
 		stable.slab[i].num_free_objects = 0;
 		stable.slab[i].num_used_objects = 0;
-		stable.slab[i].num_objects_per_page = 4096 / size;
+		stable.slab[i].num_objects_per_page = PGSIZE / size;
 		// bitmap 초기화
 		stable.slab[i].bitmap = kalloc();
 		memset(stable.slab[i].bitmap, 0, PGSIZE);
 		// *page 초기화
 		for (int j = 0; j < MAX_PAGES_PER_SLAB; j++)
 			stable.slab[i].page[j] = NULL;
+
+		cprintf("[init] i: %d, size: %d\n", i, stable.slab[i].size);
 	}
 	release(&stable.lock);
 }
@@ -80,9 +83,21 @@ char *kmalloc(int size)
 	int page_idx, obj_idx;
 
 	acquire(&stable.lock);
+	// if (size > stable.slab[NSLAB-1].size)
+	// 	goto error;
 	
     // 1. size -> slab cache 찾기
-	for (slab_id = NSLAB - 1; stable.slab[slab_id].size >= size; slab_id--);
+	for (slab_id = 0; slab_id < NSLAB; slab_id++) {
+		if (stable.slab[slab_id].size >= size) break;
+	}
+	if (slab_id == NSLAB) goto error;
+	s = &stable.slab[slab_id];
+
+	// for (slab_id = NSLAB - 1; stable.slab[slab_id].size >= size; slab_id--);
+
+	
+	// if (slab_id == NSLAB)
+	// 	goto error;
 	s = &stable.slab[slab_id];
 
 	// 새 Page 할당 ; (PAGE_EMPTY OR PAGE_FULL)
@@ -93,7 +108,12 @@ char *kmalloc(int size)
 		
 		// 새 페이지 할당
 		s->page[page_idx] = kalloc();
+		// cprintf("[kalloc] page_idx: %d, page_addr: %p\n", page_idx, s->page[page_idx]);
+		if (s->page[page_idx] == NULL)
+			goto error;
+
 		s->num_pages++;
+		s->num_free_objects += s->num_objects_per_page;
 	}
 	else { // PAGE_AVAILABLE한 PAGE 검색 (search bitmap)
 		for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++)
@@ -109,15 +129,22 @@ char *kmalloc(int size)
 	s->bitmap[obj_idx / 8] |= (1 << obj_idx % 8);
 	
 	// slab 할당
-	s->num_free_objects += s->num_objects_per_page - 1;
-	s->num_used_objects += 1;
-
-	release(&stable.lock);
-	
+	s->num_free_objects--;
+	s->num_used_objects++;
 
 	// object 주소 계산	
-	char *obj_addr = s->page[page_idx] + (obj_idx * s->size);
+	// char *obj_addr = s->page[page_idx] + (obj_idx * s->size);
+	char *obj_addr = s->page[page_idx] + ((obj_idx % s->num_objects_per_page) * s->size);
+	
+	release(&stable.lock);
+	// cprintf("alloc: id=%d ", slab_id);
+	// cprintf("pg=%d idx=%d ", page_idx, obj_idx);
+	// cprintf("addr=%p\n", obj_addr);
 	return obj_addr;
+
+error:
+	release(&stable.lock);
+	return NULL;
 }
 
 /*
@@ -138,12 +165,22 @@ void kmfree(char *addr, int size)
 	int slab_id;
 	int page_idx, obj_idx;
 	
-	for (slab_id = NSLAB - 1; stable.slab[slab_id].size >= size; slab_id--);
+	acquire(&stable.lock);
+	
+	// if (size > stable.slab[NSLAB-1].size)
+	// 	goto error;
+
+	for (slab_id = 0; slab_id < NSLAB; slab_id++) {
+		if (stable.slab[slab_id].size >= size) break;
+	}
+	if (slab_id == NSLAB) goto error;
 	s = &stable.slab[slab_id];
 	
 	
-	page_addr = (char *)((uint)addr & 0xFFF00000);
-	obj_idx = ((uint)addr & 0x000FFFFF) / s->size;
+	// page_addr = (char *)((uint)addr & 0xFFF00000);
+	// obj_idx = ((uint)addr & 0x000FFFFF) / s->size;
+	page_addr = (char *)((uint)addr & ~(PGSIZE - 1));
+	obj_idx = ((uint)addr - (uint)page_addr) / s->size;
 	if (page_addr == NULL) return;
 
 
@@ -152,10 +189,12 @@ void kmfree(char *addr, int size)
 		if (s->page[page_idx] == page_addr) break;
 
 	// 해제
-	s->bitmap[page_idx * s->num_objects_per_page / 8] &= ~(1 << obj_idx);
+	// s->bitmap[page_idx * s->num_objects_per_page / 8] &= ~(1 << obj_idx);
+	int bit_idx = page_idx * s->num_objects_per_page + obj_idx;
+	s->bitmap[bit_idx / 8] &= ~(1 << (bit_idx % 8));
 
-	s->num_free_objects += 1;
-	s->num_used_objects -= 1;
+	s->num_free_objects++;
+	s->num_used_objects--;
 	
 	// page가 비었으면 페이지 해제
 	if (get_page_state(s, page_idx) == PAGE_EMPTY) {
@@ -164,7 +203,12 @@ void kmfree(char *addr, int size)
 		s->num_free_objects -= s->num_objects_per_page;
 		s->page[page_idx] = NULL;
 	}
+	release(&stable.lock);
+	return;
 
+error:
+	release(&stable.lock);
+	return;
 }
 
 
