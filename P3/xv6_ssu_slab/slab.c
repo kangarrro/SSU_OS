@@ -13,32 +13,87 @@ struct {
 } stable;
 
 
+static inline int popcount8(unsigned char x) {
+    x = x - ((x >> 1) & 0x55);
+    x = (x & 0x33) + ((x >> 2) & 0x33);
+    return (((x + (x >> 4)) & 0x0F));
+}
+
 // bitmap을 순회하며 Page의 상태를 반환하는 함수
 static page_state get_page_state(struct slab *s, int page_index)
 {
-	int byte_index, bit_index;
 	int obj_per_page = s->num_objects_per_page;
-	int count = 0;
+	int bit_start = page_index * obj_per_page;
+	int byte_start = bit_start / 8;
+	int bit_offset = bit_start % 8;
 
-	int base = page_index * obj_per_page;
-	for (int i = 0; i < obj_per_page; i++) {
-		byte_index = (base + i) / 8;
-		bit_index = (base + i) % 8;
-		if (s->bitmap[byte_index] & (1 << bit_index))
-			count++;
+	int count = 0;
+	int full_bytes = obj_per_page / 8;
+	int remaining_bits = obj_per_page % 8;
+
+	// 첫 비트가 byte 경계에 딱 맞으면 바로 계산
+	if (bit_offset == 0) {
+		for (int i = 0; i < full_bytes; i++) {
+			count += popcount8((unsigned char)s->bitmap[byte_start + i]);
+		}
+		if (remaining_bits > 0) {
+			unsigned char last = s->bitmap[byte_start + full_bytes];
+			last &= (1 << remaining_bits) - 1;
+			count += popcount8(last);
+		}
+	} else {
+		// 정렬되어 있지 않으면 비트 단위로 체크
+		for (int i = 0; i < obj_per_page; i++) {
+			int bit_index = bit_start + i;
+			int byte_index = bit_index / 8;
+			int bit_pos = bit_index % 8;
+			if (s->bitmap[byte_index] & (1 << bit_pos))
+				count++;
+		}
 	}
 
-	if (s->page[page_index]) {     // page 존재
+	if (s->page[page_index]) {
 		if (count == 0)
 			return PAGE_EMPTY;
-		else if (count == obj_per_page) // 꽉찬 Page
+		else if (count == obj_per_page)
 			return PAGE_FULL;
-		else                       // 사용가능한 Page
-			return PAGE_AVAILABLE;
-	} else {                       // page 존재 x
+		else
+			return PAGE_PARTIAL;
+	} else {
 		return PAGE_NOT_ALLOCATED;
 	}
 }
+// static page_state get_page_state(struct slab *s, int page_index)
+// {
+// 	int count = 0;
+// 	int obj_per_page = s->num_objects_per_page;
+// 	// int byte_index, bit_index;
+
+// 	// int base = page_index * obj_per_page;
+// 	int base = (page_index * obj_per_page) / 8;
+
+// 	for (int i = 0; i < obj_per_page / 8; i++) {
+// 		count += popcount8((unsigned char)(s->bitmap[base + i]));
+// 	}
+
+// 	// for (int i = 0; i < obj_per_page; i++) {
+// 	// 	byte_index = (base + i) / 8;
+// 	// 	bit_index = (base + i) % 8;
+// 	// 	if (s->bitmap[byte_index] & (1 << bit_index))
+// 	// 		count++;
+// 	// }
+
+// 	if (s->page[page_index]) {     // page 존재
+// 		if (count == 0)
+// 			return PAGE_EMPTY;
+// 		else if (count == obj_per_page) // 꽉찬 Page
+// 			return PAGE_FULL;
+// 		else                       // 사용가능한 Page
+// 			return PAGE_PARTIAL;
+// 	} else {                       // page 존재 x
+// 		return PAGE_NOT_ALLOCATED;
+// 	}
+// }
 
 /*
 	1. slab[NSLAB] 각각 초기화 + (bitmap 초기화)
@@ -46,7 +101,7 @@ static page_state get_page_state(struct slab *s, int page_index)
 void slabinit()
 {
 	int base_size = 16;
-	int size;
+	int size, n_obj;
 
 	acquire(&stable.lock);
 	for (int i=0; i<NSLAB; i++) {
@@ -63,17 +118,15 @@ void slabinit()
 		// 첫 page 할당
 		stable.slab[i].page[0] = kalloc();
 		if (!stable.slab[i].page[0]) goto done;
+		stable.slab[i].num_pages++;
 
 		size = base_size << i;
+		n_obj = PGSIZE / size;
 		// stable.slab[] 초기화
 		stable.slab[i].size = size;
-		stable.slab[i].num_objects_per_page = PGSIZE / size;
-		
-		stable.slab[i].num_pages = 1;
-		stable.slab[i].num_free_objects = stable.slab[i].num_objects_per_page;
+		stable.slab[i].num_objects_per_page = n_obj;
+		stable.slab[i].num_free_objects = n_obj;
 		stable.slab[i].num_used_objects = 0;
-		cprintf("[init] i: %d, size: %d", i, stable.slab[i].size);
-		cprintf(", n_page: %d, n_free: %d\n", stable.slab[i].num_pages, stable.slab[i].num_free_objects);
 	}
 done:
 	release(&stable.lock);
@@ -106,29 +159,27 @@ char *kmalloc(int size)
 	}
 	s = &stable.slab[slab_id];
 
+	// slab full
 	if (s->num_pages >= MAX_PAGES_PER_SLAB && s->num_free_objects == 0)
 		goto error;
 
 	int found = 0;
 	for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++) {
-		if (get_page_state(s, page_idx) == PAGE_AVAILABLE || get_page_state(s, page_idx) == PAGE_EMPTY) {
+		page_state p_state = get_page_state(s, page_idx);
+		if (p_state == PAGE_EMPTY || p_state == PAGE_PARTIAL) {
 			found = 1;
 			break;
 		}
 	}
-
+	
+	// 새 페이지 할당
 	if (!found) {
-		// 새 페이지 할당
 		for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++) {
 			if (s->page[page_idx] == NULL)
 				break;
 		}
 
-		////////////////// ?????????????????????????????????????????????????????????????????????????
-		if (page_idx == MAX_PAGES_PER_SLAB) {
-			// cprintf("[kmalloc] ERROR: no room for new page in slab_id=%d\n", slab_id);
-			goto error;
-		}
+		if (page_idx == MAX_PAGES_PER_SLAB) goto error;
 
 		s->page[page_idx] = kalloc();
 		if (!s->page[page_idx]) goto error;
@@ -195,20 +246,14 @@ void kmfree(char *addr, int size)
 	for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++)
 		if (s->page[page_idx] == page_addr) break;
 
-	if (page_idx == MAX_PAGES_PER_SLAB) {
-		// cprintf("[kmfree] ERROR: page not found for address %p\n", addr);
-		goto done;
-	}
+	if (page_idx == MAX_PAGES_PER_SLAB) goto done;
 
 	// obj_idx
 	obj_idx = (page_idx * s->num_objects_per_page) + (((uint)addr - (uint)page_addr) / s->size);
-	
+
+	// freed object
 	if (!(s->bitmap[obj_idx / 8] & (1 << obj_idx % 8))) goto done;
 
-	if (obj_idx >= s->num_objects_per_page * MAX_PAGES_PER_SLAB) {
-		cprintf("[kmfree] ERROR: invalid object index %d\n", obj_idx);
-		goto done;
-	}
 	
 	s->bitmap[obj_idx / 8] &= ~(1 << (obj_idx % 8));
 	

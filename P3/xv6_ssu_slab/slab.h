@@ -3,10 +3,17 @@
 
 #ifndef NULL
 #define NULL ((void *) 0)
-#endif
+#endif // NULL
 
 #define NSLAB 8
 #define MAX_PAGES_PER_SLAB 100
+
+typedef enum page_state {
+    PAGE_NOT_ALLOCATED = 0,
+    PAGE_EMPTY         = 1,
+    PAGE_PARTIAL       = 2,
+    PAGE_FULL          = 3
+} page_state;
 
 struct slab {
     int size;
@@ -17,13 +24,6 @@ struct slab {
     char *bitmap;
     char *page[MAX_PAGES_PER_SLAB];
 };
-
-typedef enum page_state {
-    PAGE_EMPTY         = 0,
-    PAGE_AVAILABLE     = 1,
-    PAGE_FULL          = 2,
-    PAGE_NOT_ALLOCATED = 3
-} page_state;
 
 void slabdump();
 
