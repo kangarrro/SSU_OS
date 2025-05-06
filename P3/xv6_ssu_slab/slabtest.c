@@ -59,6 +59,8 @@ void slabtest()
     cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
+    // slabdump();
+
     /* TEST2: Single slab alloc: the size not equal to a power of 2. */
     cprintf("==== TEST2 =====\n");
     start = counter;
@@ -69,6 +71,7 @@ void slabtest()
     cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
+    // slabdump();
     /* TEST3: Multiple slabs alloc */
     cprintf("==== TEST3 =====\n");
     start = counter;
@@ -101,13 +104,12 @@ void slabtest()
     }
     for (int i = 0; i < NSLAB; i++) {
         if (numpage_slab(i) != 1 || numobj_slab(i) != 0) {
-            cprintf("n_page: %d\n", numpage_slab(i));
-            // cprintf("n_obj: %d\n", numobj_slab(i));
             pass = 0;
             break;
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
+    // slabdump();
 
     /* TEST4: Multiple slabs alloc2 */
     cprintf("==== TEST4 =====\n");
@@ -123,6 +125,7 @@ void slabtest()
         }
     }
 
+    // slabdump();
     // CHECK
     pass = 1;
     for (int i = 0; i < NSLAB; i++) {
@@ -150,8 +153,9 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
+    // slabdump();
 
-    /* TEST5: alloc more than the page limit (100 pages) */
+    // /* TEST5: alloc more than the page limit (100 pages) */
     cprintf("==== TEST5 =====\n");
     start = counter;
     for (int j = 0; j < MAXTEST; j++) {
