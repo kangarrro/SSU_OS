@@ -24,14 +24,6 @@ Note that, you can edit the test function only for the debugging purpose.
 
 int *t[NSLAB][MAXSLABTEST] = {};
 
-#ifdef SLAB_DEBUG
-static inline uint rdtsc() {
-    uint lo, hi;
-    asm volatile("rdtsc" : "=a"(lo), "=d"(hi));
-    return lo;
-}
-#endif
-
 void slabtest()
 {
     int counter = 1;
@@ -59,11 +51,7 @@ void slabtest()
      */
 
     /* TEST1: Single slab alloc */
-    cprintf("==== TEST1 ====\n");
-#ifdef SLAB_DEBUG
-    uint start_time, end_time;
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST1 =====\n");
     start = counter;
     t[0][0] = (int *)kmalloc(TESTSIZE);
     *(t[0][0]) = counter;
@@ -71,17 +59,10 @@ void slabtest()
     cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
+    // slabdump();
 
     /* TEST2: Single slab alloc: the size not equal to a power of 2. */
-    cprintf("==== TEST2 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST2 =====\n");
     start = counter;
     t[0][0] = (int *)kmalloc(TESTSIZE - 10);
     *(t[0][0]) = counter;
@@ -90,17 +71,9 @@ void slabtest()
     cprintf((*(t[0][0]) == start && numobj_slab(TESTSLABID) == 1) ? "OK\n" : "WRONG\n");
     kmfree((char *)t[0][0], TESTSIZE);
 
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
-
+    // slabdump();
     /* TEST3: Multiple slabs alloc */
-    cprintf("==== TEST3 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST3 =====\n");
     start = counter;
     for (int i = 0; i < NSLAB; i++) {
         slabsize = 1 << (i + 4);
@@ -136,18 +109,10 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
-
+    // slabdump();
 
     /* TEST4: Multiple slabs alloc2 */
-    cprintf("==== TEST4 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST4 =====\n");
     start = counter;
     for (int i = 0; i < NSLAB; i++) {
         slabsize = 1 << (i + 4);
@@ -160,6 +125,7 @@ void slabtest()
         }
     }
 
+    // slabdump();
     // CHECK
     pass = 1;
     for (int i = 0; i < NSLAB; i++) {
@@ -187,17 +153,10 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
+    // slabdump();
 
     // /* TEST5: alloc more than the page limit (100 pages) */
-    cprintf("==== TEST5 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST5 =====\n");
     start = counter;
     for (int j = 0; j < MAXTEST; j++) {
         t[0][j] = (int *)kmalloc(TESTSIZE);
@@ -208,17 +167,9 @@ void slabtest()
     }
     tmp = (int *)kmalloc(TESTSIZE);
     cprintf((!tmp && numobj_slab(TESTSLABID) == MAXTEST) ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
 
     /* TEST6: realloc slabs after free */
-    cprintf("==== TEST6 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST6 =====\n");
     for (int j = 0; j < MAXTEST; j++) {
         kmfree((char *)t[0][j], TESTSIZE);
     }
@@ -243,7 +194,7 @@ void slabtest()
             start++;
         }
     }
-    
+    // cprintf( pass ? "OK\n" : "WRONG\n");
     for (int j = 0; j < MAXTEST; j++)
         kmfree((char *)t[0][j], TESTSIZE);
 
@@ -254,17 +205,9 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
 
     /* TEST7: de-alloc empty slab pages */
-    cprintf("==== TEST7 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST7 =====\n");
     max_numslab = 0;
     pass = 1;
 
@@ -309,16 +252,9 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
+
     /* TEST8: re-alloc empty slab pages */
-    cprintf("==== TEST8 ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
+    cprintf("==== TEST8 =====\n");
     max_numslab = PGSIZE / TESTSIZE * MAX_PAGES_PER_SLAB;
     pass = 1;
 
@@ -359,17 +295,9 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
 
     /* TEST9: free some slabs already freed */
     cprintf("==== TEST9  ====\n");
-#ifdef SLAB_DEBUG
-    start_time = rdtsc();
-#endif
     pass = 1;
 
     for (int i = 0; i < NSLAB; i++) {
@@ -403,10 +331,5 @@ void slabtest()
         }
     }
     cprintf(pass ? "OK\n" : "WRONG\n");
-#ifdef SLAB_DEBUG
-    end_time = rdtsc();
-    slabdump();
-    cprintf("Time: %d\n", end_time - start_time);
-#endif
     cprintf("===== TEST END =====\n");
 }

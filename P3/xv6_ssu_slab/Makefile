@@ -292,7 +292,3 @@ tar:
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
 .PHONY: dist-test dist
-
-
-# P3. Slab Allocator
-CFLAGS += -DSLAB_DEBUG
