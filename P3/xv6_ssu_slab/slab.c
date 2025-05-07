@@ -98,8 +98,9 @@ void slabinit()
 		memset(stable.slab[i].bitmap, 0, PGSIZE);
 		
 		// *page 초기화
-		for (int j = 0; j < MAX_PAGES_PER_SLAB; j++)
-			stable.slab[i].page[j] = NULL;
+		memset(stable.slab[i].page, 0, sizeof(stable.slab[i].page));
+		// for (int j = 0; j < MAX_PAGES_PER_SLAB; j++)
+		// 	stable.slab[i].page[j] = NULL;
 
 		// 첫 page 할당
 		stable.slab[i].page[0] = kalloc();
