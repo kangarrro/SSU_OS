@@ -19,6 +19,14 @@ static inline int popcount8(unsigned char x) {
     return (((x + (x >> 4)) & 0x0F));
 }
 
+static char* kzalloc(void)
+{
+    char *p = kalloc();
+    if(p)
+        memset(p, 0, PGSIZE);
+    return p;
+}
+
 // bitmap을 순회하며 Page의 상태를 반환하는 함수
 // static page_state get_page_state(struct slab *s, int page_index)
 // {
@@ -92,19 +100,16 @@ void slabinit()
 	acquire(&stable.lock);
 	for (int i=0; i<NSLAB; i++) {
 		// bitmap 초기화
-		stable.slab[i].bitmap = kalloc();
+		stable.slab[i].bitmap = kzalloc();
 		if (!stable.slab[i].bitmap) goto done;
-
-		memset(stable.slab[i].bitmap, 0, PGSIZE);
 		
 		// *page 초기화
 		memset(stable.slab[i].page, 0, sizeof(stable.slab[i].page));
-		// for (int j = 0; j < MAX_PAGES_PER_SLAB; j++)
-		// 	stable.slab[i].page[j] = NULL;
 
 		// 첫 page 할당
-		stable.slab[i].page[0] = kalloc();
+		stable.slab[i].page[0] = kzalloc();
 		if (!stable.slab[i].page[0]) goto done;
+		
 		stable.slab[i].num_pages++;
 
 		size = base_size << i;
@@ -168,7 +173,7 @@ char *kmalloc(int size)
 
 		if (page_idx == MAX_PAGES_PER_SLAB) goto error;
 
-		s->page[page_idx] = kalloc();
+		s->page[page_idx] = kzalloc();
 		if (!s->page[page_idx]) goto error;
 
 		s->num_pages++;
