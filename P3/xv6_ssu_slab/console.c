@@ -76,6 +76,9 @@ void cprintf(char *fmt, ...)
         case 'd':
             printint(*argp++, 10, 1);
             break;
+        case 'u': 
+            printint(*argp++, 10, 0);
+            break;   
         case 'x':
         case 'p':
             printint(*argp++, 16, 0);

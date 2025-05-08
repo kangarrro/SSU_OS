@@ -8,10 +8,9 @@
 #define NSLAB 8                  // {16, 32, 64, 128, 256, 512, 1024, 2048}
 #define MAX_PAGES_PER_SLAB 100
 
-#define BITMAP_GET(bitmap, n) (bitmap[n / 8] & (1 << n % 8)) // 0 or else?
-#define BITMAP_SET(bitmap, n) (bitmap[n / 8] |= (1 << n % 8))
-#define BITMAP_CLEAR(bitmap, n) bitmap[n / 8] &= ~(1 << (n % 8))
-
+#define BITMAP_GET(bmp, n)    ( ((bmp)[(n) / 8] &  (1 << ((n) % 8))) ? 1 : 0 )
+#define BITMAP_SET(bmp, n)    ( (bmp)[(n) / 8] |=  (1 << ((n) % 8)) )
+#define BITMAP_CLEAR(bmp, n)  ( (bmp)[(n) / 8] &= ~(1 << ((n) % 8)) )
 
 typedef enum page_state {
     PAGE_NOT_ALLOCATED = 0,

@@ -74,7 +74,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
     /* TEST2: Single slab alloc: the size not equal to a power of 2. */
@@ -93,7 +93,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
     /* TEST3: Multiple slabs alloc */
@@ -139,7 +139,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
 
@@ -190,7 +190,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
     // /* TEST5: alloc more than the page limit (100 pages) */
@@ -211,7 +211,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
     /* TEST6: realloc slabs after free */
@@ -257,7 +257,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
     /* TEST7: de-alloc empty slab pages */
@@ -312,7 +312,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
     /* TEST8: re-alloc empty slab pages */
     cprintf("==== TEST8 ====\n");
@@ -362,7 +362,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
 
     /* TEST9: free some slabs already freed */
@@ -406,7 +406,7 @@ void slabtest()
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
     // slabdump();
-    cprintf("%d\n", end_time - start_time);
+    cprintf("%u\n", end_time - start_time);
 #endif
     cprintf("===== TEST END =====\n");
 }
