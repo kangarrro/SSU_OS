@@ -13,12 +13,11 @@ struct {
 } stable;
 
 
-static char* kzalloc(void)
-{
-	char *p = kalloc();
-    if(p)
-	memset(p, 0, PGSIZE);
-return p;
+static int get_slab_size(int size) {
+	for (int i = 0; i < NSLAB; i++)
+		if (stable.slab[i].size >= size)
+			return i;
+	return -1;
 }
 
 static inline int popcount8(unsigned char x) {
@@ -26,7 +25,6 @@ static inline int popcount8(unsigned char x) {
 	x = (x & 0x33) + ((x >> 2) & 0x33);
 	return (((x + (x >> 4)) & 0x0F));
 }
-
 
 static page_state get_page_state(struct slab *s, int page_index)
 {
@@ -68,27 +66,41 @@ static page_state get_page_state(struct slab *s, int page_index)
 		return PAGE_PARTIAL;
 }
 
-static int slab_id_for_size(int size) {
-    for (int i = 0; i < NSLAB; i++)
-        if (stable.slab[i].size >= size)
-            return i;
-    return -1;
-}
+// static page_state get_page_state(struct slab *s, int page_index)
+// {
+// 	if (!s || !s->page[page_index])
+// 		return PAGE_NOT_ALLOCATED;
+	
+// 	int obj_per_page = s->num_objects_per_page;
+// 	int bit_start = page_index * obj_per_page;
+// 	int count = 0;
 
-/*
-	1. slab[NSLAB] 각각 초기화 + (bitmap 초기화)
-*/
+// 	for (int i = 0; i < obj_per_page; i++) {
+// 		if (BITMAP_GET(s->bitmap, (bit_start + i)))
+// 			count++;
+// 	}
+
+// 	if (count == 0)
+// 		return PAGE_EMPTY;
+// 	else if (count == obj_per_page)
+// 		return PAGE_FULL;
+// 	else
+// 		return PAGE_PARTIAL;
+// }
+
+
 void slabinit()
 {
     int base = 16;
     acquire(&stable.lock);
     for (int i = 0; i < NSLAB; i++) {
         struct slab *s = &stable.slab[i];
-        s->bitmap = kzalloc();
+        s->bitmap = kalloc();
         if (!s->bitmap) break;
+		memset(s->bitmap, 0, PGSIZE);
         memset(s->page, 0, sizeof(s->page));
 
-        s->page[0] = kzalloc();
+        s->page[0] = kalloc();
         if (!s->page[0]) break;
 
         s->size = base << i;
@@ -100,64 +112,54 @@ void slabinit()
     release(&stable.lock);
 }
 
-/*
-	error:
-		1. slab is FULL
-		2. size < 0 or > 2048
-	1. size에 해당하는 slab cache 찾기
-	2. 새 페이지 할당 여부 결정
-		2-1: 빈 페이지 검색 후 할당
-		2-2: 사용가능한 페이지 검색
-	3. 빈 slab 검색 후 할당
-	4. 할당된 slab의 시작주소 반환
-*/
+
 char *kmalloc(int size)
 {
-	struct slab *s = NULL;
-	int slab_id;
+	int slab_id, n_obj;
 	int page_idx, obj_idx;
+	int null_pg_idx = -1;
+	struct slab *s = NULL;
 
 	acquire(&stable.lock);
 	
-	if (size > stable.slab[NSLAB-1].size || size < 0) goto error;
+	if (size > stable.slab[NSLAB-1].size || size < 0)
+		goto fail;
 	
     // 1. size -> slab cache 찾기
-	if((slab_id = slab_id_for_size(size)) < 0) goto error;
+	if((slab_id = get_slab_size(size)) < 0)
+		goto fail;
+	
 	s = &stable.slab[slab_id];
+	n_obj = s->num_objects_per_page;
 
 	// slab full
 	if (s->num_pages >= MAX_PAGES_PER_SLAB && s->num_free_objects == 0)
-		goto error;
+		goto fail;
 
-	int found = 0;
 	for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++) {
 		page_state p_state = get_page_state(s, page_idx);
-		if (p_state == PAGE_EMPTY || p_state == PAGE_PARTIAL) {
-			found = 1;
+		if (p_state == PAGE_EMPTY || p_state == PAGE_PARTIAL)
 			break;
-		}
+		else if (p_state == PAGE_NOT_ALLOCATED)
+			null_pg_idx = page_idx;
 	}
 	
 	// 새 페이지 할당
-	if (!found) {
-		for (page_idx = 0; page_idx < MAX_PAGES_PER_SLAB; page_idx++) {
-			if (s->page[page_idx] == NULL)
-				break;
-		}
-
-		if (page_idx == MAX_PAGES_PER_SLAB) goto error;
-
-		s->page[page_idx] = kzalloc();
-		if (!s->page[page_idx]) goto error;
+	if (page_idx == MAX_PAGES_PER_SLAB) {
+		if (null_pg_idx < 0)
+            goto fail;
+		page_idx = null_pg_idx;
+		s->page[page_idx] = kalloc();
+		if (!s->page[page_idx]) goto fail;
 
 		s->num_pages++;
-		s->num_free_objects += s->num_objects_per_page;
+		s->num_free_objects += n_obj;
 	}
 	
-	if (!s->page[page_idx]) goto error;
+	if (!s->page[page_idx]) goto fail;
 	// 빈 slab 검색
-	int base = page_idx * s->num_objects_per_page;
-	for (obj_idx = base; obj_idx < base + s->num_objects_per_page; obj_idx++)
+	int base = page_idx * n_obj;
+	for (obj_idx = base; obj_idx < base + n_obj; obj_idx++)
 		if (BITMAP_GET(s->bitmap, obj_idx) == 0) break;
 	
 	// 비트맵 설정
@@ -167,25 +169,21 @@ char *kmalloc(int size)
 	s->num_used_objects++;
 
 	// object 주소 계산	
-	char *obj_addr = (char *)((uint)s->page[page_idx] + ((uint)(obj_idx % s->num_objects_per_page) * (uint)s->size));
+	char *obj_addr = (char *)((uint)s->page[page_idx] + ((uint)(obj_idx % n_obj) * (uint)s->size));
 	
 	release(&stable.lock);
 	return obj_addr;
 
-error:
+fail:
 	// cprintf("[ERROR] kmalloc\n");
 	release(&stable.lock);
 	return NULL;
 }
 
 
-// 1. size로 slab 찾기
-// 2. addr이 있는지 확인
-// 3. addr로 page_idx, bit_offset 계산 ???
-//      -> page(12bit), offset(20bit)
 void kmfree(char *addr, int size)
 {
-	int slab_id;
+	int slab_id, n_obj;
 	int page_idx, obj_idx;
 	struct slab *s = NULL;
 	char *page_addr = NULL;
@@ -196,8 +194,9 @@ void kmfree(char *addr, int size)
 	if (size > stable.slab[NSLAB-1].size || size < 0) goto done;
 	
     // 1. size -> slab cache 찾기
-	if((slab_id = slab_id_for_size(size)) < 0) goto done;
+	if((slab_id = get_slab_size(size)) < 0) goto done;
 	s = &stable.slab[slab_id];
+	n_obj = s->num_objects_per_page;
 
 	page_addr = (char *)((uint)addr & ~(PGSIZE - 1));
 	// page_inx 검색
@@ -208,7 +207,7 @@ void kmfree(char *addr, int size)
 	if (page_idx == MAX_PAGES_PER_SLAB) goto done;
 
 	// obj_idx (bitmap index)
-	obj_idx = (page_idx * s->num_objects_per_page) + (((uint)addr & (uint)(PGSIZE - 1)) / s->size);
+	obj_idx = (page_idx * n_obj) + (((uint)addr & (uint)(PGSIZE - 1)) / s->size);
 
 	// freed object
 	if (!BITMAP_GET(s->bitmap, obj_idx)) goto done;
@@ -225,7 +224,7 @@ void kmfree(char *addr, int size)
 		kfree(s->page[page_idx]);
 		s->page[page_idx] = NULL;
 		s->num_pages--;
-		s->num_free_objects -= s->num_objects_per_page;
+		s->num_free_objects -= n_obj;
 	}	
 done:
 	release(&stable.lock);

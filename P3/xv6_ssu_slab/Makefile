@@ -294,4 +294,4 @@ tar:
 .PHONY: dist-test dist
 
 
-# CFLAGS += -DSLAB_DEBUG
+CFLAGS += -DSLAB_DEBUG
