@@ -55,7 +55,7 @@ void slabtest()
     /* TIPS:
      *	You may debug your result with
      * cprintf();
-     * slabdump();
+     * // slabdump();
      */
 
     /* TEST1: Single slab alloc */
@@ -73,7 +73,7 @@ void slabtest()
 
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -92,7 +92,7 @@ void slabtest()
 
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -138,7 +138,7 @@ void slabtest()
     cprintf(pass ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -189,7 +189,7 @@ void slabtest()
     cprintf(pass ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -210,7 +210,7 @@ void slabtest()
     cprintf((!tmp && numobj_slab(TESTSLABID) == MAXTEST) ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -256,7 +256,7 @@ void slabtest()
     cprintf(pass ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -311,7 +311,7 @@ void slabtest()
     cprintf(pass ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
     /* TEST8: re-alloc empty slab pages */
@@ -361,7 +361,7 @@ void slabtest()
     cprintf(pass ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
 
@@ -405,7 +405,7 @@ void slabtest()
     cprintf(pass ? "OK\n" : "WRONG\n");
 #ifdef SLAB_DEBUG
     end_time = rdtsc();
-    slabdump();
+    // slabdump();
     cprintf("%u\n", end_time - start_time);
 #endif
     cprintf("===== TEST END =====\n");

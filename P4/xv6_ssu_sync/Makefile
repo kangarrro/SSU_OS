@@ -17,19 +17,18 @@ OBJS = \
 	proc.o\
 	sleeplock.o\
 	spinlock.o\
+	semaphore.o\
 	string.o\
 	swtch.o\
 	syscall.o\
 	sysfile.o\
 	sysproc.o\
+	syslock.o\
 	trapasm.o\
 	trap.o\
 	uart.o\
 	vectors.o\
 	vm.o\
-	slab.o\
-	slabtest.o\
-	sysslab.o\
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -187,8 +186,9 @@ UPROGS=\
 	$U/_usertests\
 	$U/_wc\
 	$U/_zombie\
-	$U/_slabtest\
-	$U/_ps\
+	$U/_test_pi\
+	$U/_test_pc\
+	$U/_test_rt\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -258,7 +258,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
-	printf.c umalloc.c\
+	printf.c umalloc.c \
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
@@ -292,6 +292,3 @@ tar:
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
 .PHONY: dist-test dist
-
-
-CFLAGS += -DSLAB_DEBUG
