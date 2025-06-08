@@ -25,8 +25,7 @@ void sem_wait(struct semaphore *s)
     acquire(&s->lock);
     s->count--;
 
-    if (s->count < 0 && s->holder &&
-        s->holder->priority > cur->priority) {
+    if (s->count < 0 && s->holder && s->holder->priority > cur->priority) {
         s->holder->priority = cur->priority;
         remove_from_queue(priority_queue, s->holder);
         enqueue(priority_queue, s->holder);
