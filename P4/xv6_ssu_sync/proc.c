@@ -7,10 +7,72 @@
 #include "proc.h"
 #include "spinlock.h"
 
+
 struct {
     struct spinlock lock;
     struct proc proc[NPROC];
 } ptable;
+
+struct queue priority_queue[MAX_PRIO];
+
+// Queue func
+void queue_init(struct queue *queue, int len)
+{
+    for(int i = 0; i < len; i++) {
+        queue[i].num_p = 0;
+        for(int j = 0; j < NPROC; j++)
+            queue[i].procs[j] = NULL;
+    }
+}
+
+void enqueue(struct queue *queue, struct proc *p)
+{
+    int prio = p->priority - 1;
+    struct queue *q = &queue[prio];
+    if (q->num_p >= NPROC) return;
+    q->procs[q->num_p++] = p;
+}
+
+struct proc* dequeue(struct queue *queue, int prio)
+{
+    struct queue *q = &queue[prio];
+    if (q->num_p == 0 || q->procs[0] == NULL)
+        return NULL;
+
+    struct proc* p = q->procs[0];
+    for (int i = 1; i < q->num_p; i++) {
+        q->procs[i-1] = q->procs[i];
+    }
+    q->procs[q->num_p - 1] = NULL;
+    q->num_p--;
+    return p;
+}
+
+void remove_from_queue(struct queue *queue, struct proc *p)
+{
+    int prio = p->priority - 1;
+    if (prio < 0) return; // Basic sanity check
+
+    struct queue *q = &queue[prio];
+    int found_idx = -1;
+
+    // Find the index of the process to remove
+    for (int i = 0; i < q->num_p; i++) {
+        if (q->procs[i] == p) {
+            found_idx = i;
+            break;
+        }
+    }
+
+    // If found, shift all subsequent elements to the left
+    if (found_idx != -1) {
+        for (int i = found_idx; i < q->num_p - 1; i++) {
+            q->procs[i] = q->procs[i+1];
+        }
+        q->procs[q->num_p - 1] = NULL;
+        q->num_p--;
+    }
+}
 
 static struct proc *initproc;
 
@@ -23,6 +85,7 @@ static void wakeup1(void *chan);
 void pinit(void)
 {
     initlock(&ptable.lock, "ptable");
+    queue_init(priority_queue, MAX_PRIO);
 }
 
 // Must be called with interrupts disabled
@@ -86,6 +149,9 @@ found:
     p->state = EMBRYO;
     p->pid = nextpid++;
     p->priority = 20;
+    p->base_priority = 20;
+
+    // enqueue(priority_queue, p);
 
     release(&ptable.lock);
 
@@ -146,6 +212,7 @@ void userinit(void)
     acquire(&ptable.lock);
 
     p->state = RUNNABLE;
+    enqueue(priority_queue, p);
 
     release(&ptable.lock);
 }
@@ -195,6 +262,7 @@ int fork(void)
     np->parent = curproc;
     *np->tf = *curproc->tf;
     np->priority = curproc->priority;
+    np->base_priority = curproc->base_priority;
 
     // Clear %eax so that fork returns 0 in the child.
     np->tf->eax = 0;
@@ -211,6 +279,7 @@ int fork(void)
     acquire(&ptable.lock);
 
     np->state = RUNNABLE;
+    enqueue(priority_queue, np);
 
     release(&ptable.lock);
 
@@ -238,14 +307,16 @@ int fork_rt(int prio)
     np->sz = curproc->sz;
     np->parent = curproc;
     *np->tf = *curproc->tf;
-    np->priority = prio;
-
+    np->priority = prio; // priority 설정
+    np->base_priority = prio;
+    
     // Clear %eax so that fork returns 0 in the child.
     np->tf->eax = 0;
-
+    
     for (i = 0; i < NOFILE; i++)
-        if (curproc->ofile[i])
-            np->ofile[i] = filedup(curproc->ofile[i]);
+    if (curproc->ofile[i])
+    np->ofile[i] = filedup(curproc->ofile[i]);
+    
     np->cwd = idup(curproc->cwd);
 
     safestrcpy(np->name, curproc->name, sizeof(curproc->name));
@@ -255,6 +326,7 @@ int fork_rt(int prio)
     acquire(&ptable.lock);
 
     np->state = RUNNABLE;
+    enqueue(priority_queue, np);
 
     release(&ptable.lock);
 
@@ -372,13 +444,17 @@ void scheduler(void)
 
         // Loop over process table looking for process to run.
         acquire(&ptable.lock);
-        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-            if (p->state != RUNNABLE)
-                continue;
+        for (int i = 0; i < MAX_PRIO; i++) {
+            p = dequeue(priority_queue, i);
+            if (!p) continue;
 
-            // Switch to chosen process.  It is the process's job
-            // to release ptable.lock and then reacquire it
-            // before jumping back to us.
+            if (p->state != RUNNABLE) {
+                enqueue(priority_queue, p);  // 다시 넣기
+                continue;
+            }
+
+            // cprintf("scheduler selected pid=%d prio=%d\n", p->pid, p->priority);
+
             c->proc = p;
             switchuvm(p);
             p->state = RUNNING;
@@ -386,9 +462,8 @@ void scheduler(void)
             swtch(&(c->scheduler), p->context);
             switchkvm();
 
-            // Process is done running for now.
-            // It should have changed its p->state before coming back.
             c->proc = 0;
+            break;
         }
         release(&ptable.lock);
     }
@@ -423,7 +498,10 @@ void sched(void)
 void yield(void)
 {
     acquire(&ptable.lock); // DOC: yieldlock
-    myproc()->state = RUNNABLE;
+    struct proc *p = myproc();
+    p->state = RUNNABLE;
+    enqueue(priority_queue, p);
+    // cprintf("yield: pid %d yielding (prio=%d)\n", myproc()->pid, myproc()->priority);
     sched();
     release(&ptable.lock);
 }
@@ -473,6 +551,7 @@ void sleep(void *chan, struct spinlock *lk)
     // Go to sleep.
     p->chan = chan;
     p->state = SLEEPING;
+    remove_from_queue(priority_queue, p);
 
     sched();
 
@@ -494,8 +573,10 @@ static void wakeup1(void *chan)
     struct proc *p;
 
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-        if (p->state == SLEEPING && p->chan == chan)
+        if (p->state == SLEEPING && p->chan == chan) {
             p->state = RUNNABLE;
+            enqueue(priority_queue, p);
+        }
 }
 
 // Wake up all processes sleeping on chan.
@@ -518,8 +599,10 @@ int kill(int pid)
         if (p->pid == pid) {
             p->killed = 1;
             // Wake process from sleep if necessary.
-            if (p->state == SLEEPING)
+            if (p->state == SLEEPING) {
                 p->state = RUNNABLE;
+                enqueue(priority_queue, p);
+            }
             release(&ptable.lock);
             return 0;
         }

@@ -4,6 +4,7 @@ struct file;
 struct inode;
 struct pipe;
 struct proc;
+struct queue;
 struct rtcdate;
 struct spinlock;
 struct sleeplock;
@@ -122,6 +123,11 @@ int wait(void);
 void wakeup(void *);
 void yield(void);
 int fork_rt(int);
+
+void queue_init(struct queue *, int);
+void enqueue(struct queue *, struct proc *);
+struct proc* dequeue(struct queue *, int);
+void remove_from_queue(struct queue *, struct proc *);
 
 // swtch.S
 void swtch(struct context **, struct context *);

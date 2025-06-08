@@ -1,3 +1,8 @@
+#define MAX_PRIO 20
+#ifndef NULL
+#define NULL ((void *) 0)
+#endif
+
 // Per-CPU state
 struct cpu {
     uchar apicid;              // Local APIC ID
@@ -49,7 +54,9 @@ struct proc {
     struct file *ofile[NOFILE]; // Open files
     struct inode *cwd;          // Current directory
     char name[16];              // Process name (debugging)
+    
     int priority;               // Process priority
+    int base_priority;
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -57,3 +64,9 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+// Queue 정의
+struct queue {
+    int num_p;
+    struct proc *procs[NPROC];
+};
