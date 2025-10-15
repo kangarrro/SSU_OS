@@ -33,7 +33,7 @@
   - Slab allocator
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P3/README.md): 자세한 과제 요구사항을 확인할 수 있습니다.
 - [상세 구현 내용](https://github.com/kangarrro/SSU_OS/blob/main/P3/solution.md): 자세한 과제해결과정을 확인할 수 있습니다.
-### 5. P4 : [Synchronization(Semaphore)](https://github.com/kangarrro/SSU_OS/tree/main/P4)
+### 5. P4 : [Synchronization (Semaphore)](https://github.com/kangarrro/SSU_OS/tree/main/P4)
 - 과제 요약:
   - Semaphore 구현
 - [과제 상세 명세](https://github.com/kangarrro/SSU_OS/blob/main/P4/README.md)
